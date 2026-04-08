@@ -36,20 +36,25 @@
   <p class="tagline">AI-Agent-First Ghost Theme Factory &mdash; from preset to production in seconds.</p>
 
   <div class="install-box">
-    <h2>Install</h2>
-    <pre><code>curl -fsSL https://studio.xed.dev/install.sh | bash</code></pre>
+    <h2>Step 1 &mdash; Install as root</h2>
+    <pre><code># As root (installs CLI globally to /opt/infactory):
+curl -fsSL https://studio.xed.dev/install.sh | bash</code></pre>
     <p style="margin:0.5rem 0 0; color:#8b949e; font-size:0.85rem;">
       Requires: Node.js 18+ &middot; Git &middot; <a href="https://ghost.org">Ghost CMS</a> 6.x
     </p>
   </div>
 
   <div class="install-box" style="border-color:#30363d;">
-    <h2>Setup on your Ghost server</h2>
-    <pre><code># On your Ghost host:
+    <h2>Step 2 &mdash; Setup as Ghost user</h2>
+    <pre><code># As your Ghost user (e.g. g-host):
 cd /var/ghost/your-site
 infactory install
 
-# That's it. Your AI agent can now control Ghost via API.</code></pre>
+# That's it. Your AI agent can now control Ghost via API.
+infactory status</code></pre>
+    <p style="margin:0.5rem 0 0; color:#8b949e; font-size:0.85rem;">
+      All <code>infactory</code> commands run as the Ghost user, never as root.
+    </p>
   </div>
 
   <h2>What it does</h2>
