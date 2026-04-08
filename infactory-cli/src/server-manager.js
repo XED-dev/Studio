@@ -218,30 +218,44 @@ Environment=INFACTORY_CONFIG=${configPath()}
 WantedBy=multi-user.target
 `;
 
-  info(`\n  systemd Service: ${svcName}`);
-  info(`  Service-Datei: ${serviceFile}`);
+  // Service-Datei schreiben + systemd Setup (wie ghost install)
+  info(`\n  systemd Setup...`);
 
-  // Service-Datei schreiben (braucht sudo)
   const tmpService = path.join(ifDir, `${svcName}.service`);
   fs.writeFileSync(tmpService, serviceContent, 'utf8');
+
+  try {
+    execSync(`sudo cp ${tmpService} ${serviceFile}`, { stdio: 'inherit' });
+    execSync('sudo systemctl daemon-reload', { stdio: 'inherit' });
+    execSync(`sudo systemctl enable ${svcName}`, { stdio: 'inherit' });
+    execSync(`sudo systemctl start ${svcName}`, { stdio: 'inherit' });
+    info(`  ✔  Service ${svcName} installiert und gestartet`);
+  } catch (err) {
+    // Fallback: Anleitung ausgeben wenn sudo fehlschlägt
+    console.warn(`\n  ⚠  systemd Setup fehlgeschlagen (sudo nötig).`);
+    console.warn(`     Manuell ausführen:\n`);
+    console.warn(`     sudo cp ${tmpService} ${serviceFile}`);
+    console.warn(`     sudo systemctl daemon-reload`);
+    console.warn(`     sudo systemctl enable ${svcName}`);
+    console.warn(`     sudo systemctl start ${svcName}\n`);
+  }
 
   info(`\n  ═══════════════════════════════════════════════════`);
   info(`  Installation abgeschlossen!`);
   info(`  ═══════════════════════════════════════════════════`);
-  info(`\n  Nächste Schritte:\n`);
-  info(`  1. Ghost Admin API Key eintragen:`);
-  info(`     Ghost Admin → Settings → Integrations → Add custom integration`);
-  info(`     Dann in ${configPath()}:`);
-  info(`     "ghost_admin_key": "<id>:<secret>"\n`);
-  info(`  2. systemd Service installieren:`);
-  info(`     sudo cp ${tmpService} ${serviceFile}`);
-  info(`     sudo systemctl daemon-reload`);
-  info(`     sudo systemctl enable ${svcName}`);
-  info(`     sudo systemctl start ${svcName}\n`);
-  info(`  3. Status prüfen:`);
-  info(`     infactory status\n`);
-  info(`  API-Key (für AI Agent): ${apiKey}\n`);
-  info(`  Server: http://localhost:${infactoryPort}/api/health\n`);
+
+  // Ghost Admin Key prüfen
+  if (!config.ghost_admin_key) {
+    info(`\n  Nächster Schritt:\n`);
+    info(`  Ghost Admin API Key eintragen:`);
+    info(`     Ghost Admin → Settings → Integrations → Add custom integration`);
+    info(`     Dann in ${configPath()}:`);
+    info(`     "ghost_admin_key": "<id>:<secret>"\n`);
+  }
+
+  info(`  API-Key (für AI Agent): ${apiKey}`);
+  info(`  Server: http://localhost:${infactoryPort}/api/health`);
+  info(`  Status: infactory status\n`);
 }
 
 // ─── start / stop / restart ───────────────────────────────────────────────────
