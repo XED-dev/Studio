@@ -246,11 +246,14 @@ WantedBy=multi-user.target
 
   // Ghost Admin Key prüfen
   if (!config.ghost_admin_key) {
-    info(`\n  Nächster Schritt:\n`);
-    info(`  Ghost Admin API Key eintragen:`);
-    info(`     Ghost Admin → Settings → Integrations → Add custom integration`);
-    info(`     Dann in ${configPath()}:`);
-    info(`     "ghost_admin_key": "<id>:<secret>"\n`);
+    info(`\n  Die nächsten SysOps Schritte:\n`);
+    info(`  1. Ghost Admin API Key eintragen:`);
+    info(`     Ghost Admin → Settings → Integrations → Add custom integration → Name: inFactory Studio`);
+    info(`       Content API Key: * (wird automatisch erstellt)`);
+    info(`       Admin API Key: * (wird automatisch erstellt)`);
+    info(`       API URL: * (wird automatisch erstellt)\n`);
+    info(`     Dann eintragen: nano ${configPath()}`);
+    info(`     "ghost_admin_key": "<Admin-API-Key>",\n`);
   }
 
   info(`  API-Key (für AI Agent): ${apiKey}`);
