@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>XED /Studio — AI-Agent-First Ghost Theme Factory</title>
+  <title>inFactory@ /Studio by XED.dev — AI-Agent-First Ghost Theme Factory</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 680px; margin: 0 auto; padding: 24px 20px 80px; background: #0d1117; color: #c9d1d9; line-height: 1.6; }
@@ -32,28 +32,28 @@
 </head>
 <body>
 
-  <h1>XED /Studio</h1>
+  <h1>inFactory@ /Studio <span style="font-size:0.5em;color:#8b949e;">by</span> <a href="https://xed.dev" style="font-size:0.5em;">XED.dev</a></h1>
   <p class="tagline">AI-Agent-First Ghost Theme Factory &mdash; from preset to production in seconds.</p>
 
   <div class="install-box">
-    <h2>Quick Start</h2>
-    <pre><code>git clone https://github.com/XED-dev/Studio.git
-cd Studio/infactory-cli && npm install
-
-# Build a Ghost theme
-node bin/infactory.js build --preset=blog --zip
-
-# Deploy to Ghost
-INFACTORY_GHOST_URL=https://your.ghost.site \
-INFACTORY_GHOST_KEY=id:secret \
-node bin/infactory.js deploy --preset=blog</code></pre>
+    <h2>Install</h2>
+    <pre><code>curl -fsSL https://studio.xed.dev/install.sh | bash</code></pre>
     <p style="margin:0.5rem 0 0; color:#8b949e; font-size:0.85rem;">
-      Requires: Node.js 18+ &middot; <a href="https://ghost.org">Ghost CMS</a> 6.x
+      Requires: Node.js 18+ &middot; Git &middot; <a href="https://ghost.org">Ghost CMS</a> 6.x
     </p>
   </div>
 
+  <div class="install-box" style="border-color:#30363d;">
+    <h2>Setup on your Ghost server</h2>
+    <pre><code># On your Ghost host:
+cd /var/ghost/your-site
+infactory install
+
+# That's it. Your AI agent can now control Ghost via API.</code></pre>
+  </div>
+
   <h2>What it does</h2>
-  <p>XED /Studio turns YAML preset files into production-ready Ghost themes. Define your design tokens (colors, fonts, spacing), pick sections from the library, and deploy &mdash; all from the terminal. Built for AI coding agents, not mouse clicks.</p>
+  <p>inFactory turns YAML preset files into production-ready Ghost themes. Define your design tokens (colors, fonts, spacing), pick sections from the library, and deploy &mdash; all from the terminal. Built for AI coding agents, not mouse clicks.</p>
 
   <h2>Two components</h2>
   <table>
@@ -91,6 +91,19 @@ node bin/infactory.js deploy --preset=blog</code></pre>
     <tr><td><code>studio</code></td><td>Portfolio, multi-use</td><td>4</td></tr>
   </table>
 
+  <h2>Server management</h2>
+  <table>
+    <tr><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>infactory install</code></td><td>Setup as Ghost companion (auto-detects config)</td></tr>
+    <tr><td><code>infactory start</code></td><td>Start inFactory server</td></tr>
+    <tr><td><code>infactory stop</code></td><td>Stop inFactory server</td></tr>
+    <tr><td><code>infactory restart</code></td><td>Restart inFactory server</td></tr>
+    <tr><td><code>infactory status</code></td><td>Show Ghost + inFactory status</td></tr>
+    <tr><td><code>infactory update</code></td><td>Update to latest version</td></tr>
+    <tr><td><code>infactory ghost restart</code></td><td>Restart Ghost CMS</td></tr>
+  </table>
+  <p style="color:#8b949e; font-size:0.85rem;">Auto-sleep after 6 hours of inactivity. Wakes up on next request.</p>
+
   <h2>Server API</h2>
   <table>
     <tr><th>Endpoint</th><th>What it does</th></tr>
@@ -104,11 +117,18 @@ node bin/infactory.js deploy --preset=blog</code></pre>
   <p style="color:#8b949e; font-size:0.85rem;">17 endpoints total. See <a href="https://github.com/XED-dev/Studio/blob/main/infactory-server/README.md">full API reference</a>.</p>
 
   <div class="links">
+    <a href="https://infactory.at">inFactory.at</a>
     <a href="https://github.com/XED-dev/Studio">GitHub</a>
+    <a href="https://infactory.at/wiki">Wiki</a>
+    <a href="https://infactory.at/discussions">Discussions</a>
     <a href="https://github.com/XED-dev/Studio/blob/main/LICENSE">MIT License</a>
-    <a href="https://xed.dev">XED /Suite</a>
+    <a href="https://xed.dev">XED.dev</a>
     <a href="https://ghost.org">Ghost CMS</a>
   </div>
+
+  <p style="color:#484f58; font-size:0.8rem; margin-top:1.5rem; text-align:center;">
+    inFactory@ /Studio by <a href="https://xed.dev" style="color:#484f58;">XED.dev</a>
+  </p>
 
 </body>
 </html>
