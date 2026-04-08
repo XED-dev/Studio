@@ -68,35 +68,30 @@ infactory status</code></pre>
   </table>
 
   <h2>Architecture</h2>
-  <div class="mermaid-wrap">
-    <script type="module">
-      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-      mermaid.initialize({ theme: 'dark', themeVariables: {
-        darkMode: true, background: '#161b22', primaryColor: '#388bfd33',
-        primaryTextColor: '#e6edf3', primaryBorderColor: '#30363d',
-        lineColor: '#58a6ff', secondaryColor: '#161b22',
-        tertiaryColor: '#161b22', fontSize: '14px',
-      }});
-    </script>
-    <pre class="mermaid">
-graph LR
-  subgraph agent["AI Agent (terminal)"]
-    A1["Claude Code"]
-    A2["Gemini CLI"]
-    A3["any CLI agent"]
-  end
-
-  subgraph host["Ghost Host"]
-    subgraph factory["inFactory Server"]
-      F1["Theme Build+Deploy"]
-      F2["Content CRUD"]
-      F3["Image Migration"]
-      F4["Ghost Restart"]
-    end
-  end
-
-  agent -- "HTTPS + API-Key" --> factory
-    </pre>
+  <div style="display:flex; gap:20px; flex-wrap:wrap; margin:1.5rem 0;">
+    <div style="flex:1; min-width:200px; background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px;">
+      <div style="color:#8b949e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px;">AI Agent (terminal)</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <code>Claude Code</code>
+        <code>Gemini CLI</code>
+        <code>any CLI agent</code>
+      </div>
+    </div>
+    <div style="flex:0; display:flex; align-items:center; color:#58a6ff; font-size:0.85rem; white-space:nowrap; padding:0 4px;">
+      HTTPS +<br>API-Key<br><span style="font-size:1.4rem;">&rarr;</span>
+    </div>
+    <div style="flex:1.5; min-width:240px; background:#161b22; border:1px solid #388bfd55; border-radius:8px; padding:16px;">
+      <div style="color:#8b949e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">Ghost Host</div>
+      <div style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:12px; margin-top:8px;">
+        <div style="color:#58a6ff; font-size:0.85rem; font-weight:600; margin-bottom:10px;">inFactory Server</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+          <code>Theme Build+Deploy</code>
+          <code>Content CRUD</code>
+          <code>Image Migration</code>
+          <code>Ghost Restart</code>
+        </div>
+      </div>
+    </div>
   </div>
 
   <h2>Why CLI-first?</h2>
