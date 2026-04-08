@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * bin/infactory.js — inFactory CLI Entry Point v0.7
- * Befehle: new, build, preview, deploy, list, section, preset, config
+ * bin/infactory.js — inFactory CLI Entry Point v1.0
+ * Server:  install, start, stop, restart, status, update
+ * Theme:   new, build, preview, deploy, list, section, preset, config
+ * Ghost:   ghost restart
  */
 'use strict';
 
@@ -52,6 +54,48 @@ async function run() {
   const { build, listPresets } = require('../src/build');
 
   switch (command) {
+
+    // ── Server Management ────────────────────────────────────────────────────
+    case 'install': {
+      const { install } = require('../src/server-manager');
+      await install({ verbose: !!opts.verbose });
+      break;
+    }
+    case 'start': {
+      const { start } = require('../src/server-manager');
+      start();
+      break;
+    }
+    case 'stop': {
+      const { stop } = require('../src/server-manager');
+      stop();
+      break;
+    }
+    case 'restart': {
+      const { restart } = require('../src/server-manager');
+      restart();
+      break;
+    }
+    case 'status': {
+      const { status } = require('../src/server-manager');
+      status();
+      break;
+    }
+    case 'update': {
+      const { update } = require('../src/server-manager');
+      update({ verbose: !!opts.verbose });
+      break;
+    }
+    case 'ghost': {
+      const sub = args[1];
+      if (sub === 'restart') {
+        const { ghostRestart } = require('../src/server-manager');
+        ghostRestart();
+      } else {
+        console.log('  Befehle: infactory ghost restart\n');
+      }
+      break;
+    }
 
     // ── new ──────────────────────────────────────────────────────────────────
     case 'new': {
@@ -284,10 +328,19 @@ async function run() {
 
     // ── help ──────────────────────────────────────────────────────────────────
     default: {
-      let version = '0.7.0';
+      let version = '1.0.0';
       try { version = require('../package.json').version; } catch {}
       console.log(`
-  inFactory CLI v${version} — Ghost Theme Generator
+  inFactory CLI v${version} — Ghost Theme Factory
+
+  Server (im Ghost-Verzeichnis ausführen):
+    infactory install               Setup: .infactory/, systemd, API-Key
+    infactory start                 Server starten
+    infactory stop                  Server stoppen
+    infactory restart               Server neustarten
+    infactory status                Server + Ghost Status
+    infactory update                Auf neueste Version aktualisieren
+    infactory ghost restart         Ghost CMS neustarten
 
   Projekt:
     infactory new     --name=<slug> [--preset=<id>] [--mode=copy|link]
@@ -304,18 +357,7 @@ async function run() {
     infactory preview --preset=<id> [--port=2369] [--no-open]
 
   Deploy:
-    infactory deploy  --preset=<id> --url=https://mein.blog --key=id:secret
-    infactory deploy  --preset=<id> --url=https://mein.blog --key=id:secret --no-activate
-    infactory deploy  --preset=<id> --url=https://mein.blog --key=id:secret --dry-run
-    infactory deploy  --preset=<id> --url=https://mein.blog --key=id:secret --skip-build
-
-    ENV-Variablen (empfohlen für CI/CD):
-      INFACTORY_GHOST_URL=https://mein.blog
-      INFACTORY_GHOST_KEY=<id>:<secret>
-
-    .infactory.json (deploy.url + deploy.key):
-      { "deploy": { "url": "https://mein.blog" } }
-      (key besser via ENV — nicht in Git committen!)
+    infactory deploy  --preset=<id> [--url=... --key=...]
 
   Section Composer:
     infactory section add|remove|move|layout|list|search
@@ -323,6 +365,8 @@ async function run() {
   Sonstiges:
     infactory sections validate
     infactory config
+
+  https://studio.xed.dev
 `);
     }
   }

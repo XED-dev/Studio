@@ -1,8 +1,12 @@
 /**
- * config.js — Konfiguration aus .env laden
+ * config.js — Konfiguration aus infactory.json laden
  *
- * Keine externen Dependencies (kein dotenv).
- * Liest .env manuell, ENV-Variablen haben Vorrang.
+ * Liest entweder:
+ *   1. INFACTORY_CONFIG ENV → direkter Pfad zu infactory.json
+ *   2. cwd/.infactory/infactory.json (wenn im Ghost-Verzeichnis gestartet)
+ *   3. Fallback: ../.env (Legacy-Modus für Entwicklung)
+ *
+ * Keine externen Dependencies.
  */
 
 'use strict';
@@ -10,65 +14,101 @@
 const fs   = require('fs');
 const path = require('path');
 
-// .env Datei laden (Key=Value, # Kommentare ignorieren)
-const envPath = path.join(__dirname, '..', '.env');
-if (fs.existsSync(envPath)) {
-  const lines = fs.readFileSync(envPath, 'utf8').split('\n');
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const idx = trimmed.indexOf('=');
-    if (idx === -1) continue;
-    const key = trimmed.slice(0, idx).trim();
-    const val = trimmed.slice(idx + 1).trim();
-    // ENV hat Vorrang — nur setzen wenn nicht bereits definiert
-    if (!process.env[key]) {
-      process.env[key] = val;
+let config;
+
+// ─── Versuch 1: infactory.json (Produktiv-Modus) ─────────────────────────────
+
+const configFromEnv  = process.env.INFACTORY_CONFIG;
+const configFromCwd  = path.join(process.cwd(), '.infactory', 'infactory.json');
+const configPath     = configFromEnv || (fs.existsSync(configFromCwd) ? configFromCwd : null);
+
+if (configPath && fs.existsSync(configPath)) {
+  const raw = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  const ghostDir    = path.dirname(path.dirname(configPath)); // .infactory/ → Ghost-Dir
+  const contentPath = raw.content_path || path.join(ghostDir, 'content');
+
+  config = {
+    port:     raw.infactory_port || 3333,
+    apiKey:   raw.api_key || '',
+    cliPath:  path.join(path.dirname(configPath), 'cli'),
+    autoSleepMinutes: raw.auto_sleep_minutes || 360,
+
+    sites: {
+      local: {
+        url:         raw.ghost_url || `http://localhost:${raw.ghost_port || 2368}`,
+        key:         raw.ghost_admin_key || '',
+        contentPath: contentPath,
+      },
+    },
+
+    imageArchivePath: raw.image_archive_path || '',
+    ghostDir:         ghostDir,
+    configPath:       configPath,
+    domain:           raw.domain || '',
+  };
+
+} else {
+  // ─── Versuch 2: .env Fallback (Entwicklung) ────────────────────────────────
+
+  const envPath = path.join(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const idx = trimmed.indexOf('=');
+      if (idx === -1) continue;
+      const key = trimmed.slice(0, idx).trim();
+      const val = trimmed.slice(idx + 1).trim();
+      if (!process.env[key]) process.env[key] = val;
     }
   }
+
+  function ghostSite(prefix) {
+    const url = process.env[`GHOST_${prefix}_URL`] || '';
+    const key = process.env[`GHOST_${prefix}_KEY`] || '';
+    const contentPath = process.env[`GHOST_${prefix}_CONTENT_PATH`] || '';
+    if (!url || !key) return null;
+    return { url: url.replace(/\/$/, ''), key, contentPath };
+  }
+
+  config = {
+    port:     parseInt(process.env.INFACTORY_PORT || '3333', 10),
+    apiKey:   process.env.INFACTORY_API_KEY || '',
+    cliPath:  path.resolve(__dirname, '..', process.env.INFACTORY_CLI_PATH || '../infactory-cli'),
+    autoSleepMinutes: parseInt(process.env.AUTO_SLEEP_MINUTES || '360', 10),
+    sites:    {},
+    imageArchivePath: process.env.IMAGE_ARCHIVE_PATH || '',
+    ghostDir: '',
+    configPath: '',
+    domain: '',
+  };
+
+  const devSite = ghostSite('DEV');
+  const webSite = ghostSite('WEB');
+  if (devSite) config.sites.dev = devSite;
+  if (webSite) config.sites.web = webSite;
+  // Alias: "local" zeigt auf erste verfügbare Site
+  if (devSite) config.sites.local = devSite;
+  else if (webSite) config.sites.local = webSite;
 }
 
-/**
- * Ghost-Site Konfiguration.
- * Unterstützt DEV + WEB Instanzen.
- */
-function ghostSite(prefix) {
-  const url  = process.env[`GHOST_${prefix}_URL`]  || '';
-  const key  = process.env[`GHOST_${prefix}_KEY`]  || '';
-  const contentPath = process.env[`GHOST_${prefix}_CONTENT_PATH`] || '';
-  if (!url || !key) return null;
-  return { url: url.replace(/\/$/, ''), key, contentPath };
-}
+// ─── Validierung ──────────────────────────────────────────────────────────────
 
-const config = {
-  port:     parseInt(process.env.INFACTORY_PORT || '3333', 10),
-  apiKey:   process.env.INFACTORY_API_KEY || '',
-  cliPath:  path.resolve(__dirname, '..', process.env.INFACTORY_CLI_PATH || '../infactory-cli'),
-
-  // Ghost Sites
-  sites: {},
-
-  // Bild-Archiv
-  imageArchivePath: process.env.IMAGE_ARCHIVE_PATH || '',
-};
-
-// Sites dynamisch laden
-const devSite = ghostSite('DEV');
-const webSite = ghostSite('WEB');
-if (devSite) config.sites.dev = devSite;
-if (webSite) config.sites.web = webSite;
-
-// Validierung
 if (!config.apiKey) {
-  console.error('\n  FEHLER: INFACTORY_API_KEY nicht gesetzt!\n');
-  console.error('  Generiere einen Key:');
-  console.error('  node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-  console.error('  Setze in .env: INFACTORY_API_KEY=<key>\n');
+  console.error('\n  FEHLER: API-Key nicht gesetzt!\n');
+  if (configPath) {
+    console.error(`  Setze "api_key" in ${configPath}\n`);
+  } else {
+    console.error('  Generiere einen Key:');
+    console.error('  node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+    console.error('  Setze in .env: INFACTORY_API_KEY=<key>\n');
+  }
   process.exit(1);
 }
 
 if (Object.keys(config.sites).length === 0) {
-  console.warn('\n  WARNUNG: Keine Ghost-Sites konfiguriert. Setze GHOST_DEV_URL + GHOST_DEV_KEY in .env.\n');
+  console.warn('\n  WARNUNG: Keine Ghost-Sites konfiguriert.\n');
 }
 
 module.exports = config;
