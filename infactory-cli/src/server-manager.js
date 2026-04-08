@@ -361,29 +361,26 @@ function update(opts = {}) {
   console.log('\n  Update...');
 
   try {
-    // Pull latest
+    // Pull latest ins .infactory/ (enthält das geklonte Repo)
     execSync('git pull --ff-only', {
-      cwd: ifDir, env: { ...process.env, GIT_DIR: gitDir, GIT_WORK_TREE: ifDir },
+      cwd: ifDir,
       stdio: verbose ? 'inherit' : 'pipe',
     });
 
-    // Code syncen
+    // Code aus dem geklonten Repo nach server/ und cli/ kopieren
     const serverDir = path.join(ifDir, 'server');
     const cliDir    = path.join(ifDir, 'cli');
-    const tmpDir    = path.join(ifDir, '_tmp_update');
+    const repoServer = path.join(ifDir, 'infactory-server');
+    const repoCli    = path.join(ifDir, 'infactory-cli');
 
-    // Worktree checkout für sauberes Update
-    execSync(`git --git-dir=${gitDir} --work-tree=${tmpDir} checkout HEAD -- infactory-server infactory-cli`, {
-      cwd: ifDir, stdio: verbose ? 'inherit' : 'pipe',
-    });
-
-    if (fs.existsSync(path.join(tmpDir, 'infactory-server'))) {
-      copyDir(path.join(tmpDir, 'infactory-server'), serverDir);
+    if (fs.existsSync(repoServer)) {
+      copyDir(repoServer, serverDir);
+      console.log('  ✔  Server aktualisiert');
     }
-    if (fs.existsSync(path.join(tmpDir, 'infactory-cli'))) {
-      copyDir(path.join(tmpDir, 'infactory-cli'), cliDir);
+    if (fs.existsSync(repoCli)) {
+      copyDir(repoCli, cliDir);
+      console.log('  ✔  CLI aktualisiert');
     }
-    fs.rmSync(tmpDir, { recursive: true, force: true });
 
     // npm install
     for (const dir of [serverDir, cliDir]) {
