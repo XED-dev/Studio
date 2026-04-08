@@ -68,14 +68,36 @@ infactory status</code></pre>
   </table>
 
   <h2>Architecture</h2>
-  <pre class="arch"><strong>AI Agent</strong> (terminal)          <strong>Ghost Host</strong>
-&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;  HTTPS   &#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
-&#x2502; Claude Code      &#x2502; &#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2192; &#x2502; inFactory Server     &#x2502;
-&#x2502; Gemini CLI       &#x2502; API-Key &#x2502;  &#x251C; Theme Build+Deploy &#x2502;
-&#x2502; any CLI agent    &#x2502;         &#x2502;  &#x251C; Content CRUD       &#x2502;
-&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;         &#x2502;  &#x251C; Image Migration    &#x2502;
-                              &#x2502;  &#x2514; Ghost Restart      &#x2502;
-                              &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;</pre>
+  <div class="mermaid-wrap">
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ theme: 'dark', themeVariables: {
+        darkMode: true, background: '#161b22', primaryColor: '#388bfd33',
+        primaryTextColor: '#e6edf3', primaryBorderColor: '#30363d',
+        lineColor: '#58a6ff', secondaryColor: '#161b22',
+        tertiaryColor: '#161b22', fontSize: '14px',
+      }});
+    </script>
+    <pre class="mermaid">
+graph LR
+  subgraph agent["AI Agent (terminal)"]
+    A1["Claude Code"]
+    A2["Gemini CLI"]
+    A3["any CLI agent"]
+  end
+
+  subgraph host["Ghost Host"]
+    subgraph factory["inFactory Server"]
+      F1["Theme Build+Deploy"]
+      F2["Content CRUD"]
+      F3["Image Migration"]
+      F4["Ghost Restart"]
+    end
+  end
+
+  agent -- "HTTPS + API-Key" --> factory
+    </pre>
+  </div>
 
   <h2>Why CLI-first?</h2>
   <table>
