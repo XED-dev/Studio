@@ -1,0 +1,25 @@
+{{!--
+  partials/head.hbs — inFactory Base Theme
+  Standard <head> Partial. Einbinden mit: {{> "partials/head"}}
+--}}
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{!-- meta_title, OG, Twitter etc. handled by ghost_head --}}
+
+{{!-- Favicon --}}
+{{#if @site.icon}}
+  <link rel="icon" href="{{@site.icon}}" type="image/png">
+{{/if}}
+
+{{!-- Preconnect Fonts --}}
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+{{!-- Theme CSS --}}
+<link rel="stylesheet" href="{{asset "css/tokens.css"}}">
+<link rel="stylesheet" href="{{asset "css/base.css"}}">
+<link rel="stylesheet" href="{{asset "css/screen.css"}}">
+
+{{ghost_head}}

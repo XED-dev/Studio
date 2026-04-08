@@ -1,0 +1,26 @@
+{
+  "version": "0.7",
+  "name": "mein-blog",
+  "preset": "blog",
+  "created": "2026-04-05T12:00:00.000Z",
+  "generator": "@infactory/cli",
+  "build": {
+    "outputDir": "./dist",
+    "baseThemeDir": "./base-theme",
+    "presetsDir": "./presets",
+    "registryPath": "./sections/registry.json"
+  },
+  "preview": {
+    "port": 2369,
+    "open": true
+  },
+  "deploy": {
+    "url": "",
+    "_comment_url": "Ghost URL, z.B. https://mein.blog",
+    "_comment_key": "Key NICHT hier speichern — via ENV: INFACTORY_GHOST_KEY=id:secret"
+  },
+  "studio": {
+    "enabled": false,
+    "api": "http://localhost:2370"
+  }
+}

@@ -1,0 +1,60 @@
+# presets/steirischursprung.yaml — inFactory v1.0
+# Steirisch Ursprung — Gasthaus, Brauerei & Erlebnishotel
+# Quelle: arv.steirischursprung.at (BeTheme WordPress → Ghost Migration)
+id: steirischursprung
+name: Steirisch Ursprung
+icon: "🍺"
+description: "Gasthaus, Brauerei & Erlebnishotel in der Steiermark. Warm, rustikal, einladend."
+
+tokens:
+  color:
+    primary: "#006633"
+    primary_hover: "#005529"
+    primary_active: "#00441f"
+    accent: "#ba8d1a"
+    accent_hover: "#9e7816"
+    warm_bg: "#d5c8b9"
+    dark_bg: "#16192a"
+    text: "#554030"
+    text_heading: "#2c2930"
+    text_muted: "#888888"
+    bg: "#ffffff"
+    bg_light: "#f4f4f4"
+    bg_warm: "#f8f8f8"
+    border: "#e0e0e0"
+    navbar: "#206f40"
+  font:
+    heading: "'Crimson Text', Georgia, serif"
+    body: "'Josefin Sans', system-ui, sans-serif"
+    display: "'Playfair Display', Georgia, serif"
+  spacing:
+    max_width: "1220px"
+    section_padding: "clamp(2rem, 5vw, 4rem)"
+
+layout:
+  home:
+    - hero_slider
+    - feature_cards_3col
+    - cta_bar
+    - news_grid
+
+ghost:
+  posts_per_page: 9
+  members_enabled: false
+  custom:
+    - key: header_style
+      type: select
+      options: [sticky, static]
+      default: sticky
+      description: Header-Verhalten
+    - key: accent_color
+      type: color
+      default: "#006633"
+      description: Primaerfarbe
+
+ai_hints:
+  tone: "Warm, einladend, steirisch-rustikal. Duzen erlaubt. Dialektbegriffe willkommen."
+  anti_patterns:
+    - "Zu modernes/kaltes Design"
+    - "Englische Texte"
+    - "Membership/Newsletter-CTAs"

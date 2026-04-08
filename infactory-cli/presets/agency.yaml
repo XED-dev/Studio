@@ -1,0 +1,48 @@
+# presets/agency.yaml — inFactory v0.2
+id: agency
+name: Agency
+icon: "◈"
+description: "Agentur, Studio, Kreativbüro. Mutig, typografisch, minimal."
+
+tokens:
+  color:
+    primary: "#1a1a2e"
+    primary_hover: "#16213e"
+    primary_active: "#0f3460"
+    primary_highlight: "#d8d9e8"
+  font:
+    display: "'Clash Display', 'Georgia', serif"
+    body: "'General Sans', 'Inter', sans-serif"
+
+layout:
+  home:
+    - hero_fullscreen
+    - services_list
+    - posts_grid_3col
+    - cta_bold
+
+ghost:
+  posts_per_page: 9
+  members_enabled: false
+  custom:
+    - key: header_style
+      type: select
+      options: [static, sticky, transparent]
+      default: transparent
+      description: Header-Verhalten
+    - key: hero_eyebrow
+      type: text
+      default: "Wir bauen digitale Produkte."
+      description: Kleiner Text über dem Hero-Titel
+    - key: accent_color
+      type: color
+      default: "#1a1a2e"
+      description: Primärfarbe
+
+ai_hints:
+  tone: "Direkt, selbstbewusst, keine Floskeln. Aktive Verben. Keine Bullet-Listen im Hero."
+  anti_patterns:
+    - "Icons in farbigen Kreisen"
+    - "Gradient-Buttons"
+    - "Blau-lila Farbverläufe"
+    - "Mehr als 1 CTA im Hero"

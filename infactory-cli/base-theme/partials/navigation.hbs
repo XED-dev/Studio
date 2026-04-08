@@ -1,0 +1,77 @@
+{{!--
+  partials/navigation.hbs — inFactory Base Theme
+  Ghost-native Header-Navigation
+  AI-NOTE: @site.navigation liefert die Links aus Ghost Admin > Navigation.
+           @custom.header_style steuert sticky/static/transparent.
+--}}
+<header class="c-nav{{#match @custom.header_style "sticky"}} c-nav--sticky{{/match}}{{#match @custom.header_style "transparent"}} c-nav--transparent{{/match}}" role="banner">
+  <div class="c-nav__inner l-wrapper">
+
+    <a class="c-nav__logo" href="{{@site.url}}" aria-label="{{@site.title}} – Startseite">
+      {{#if @site.logo}}
+        <img src="{{img_url @site.logo}}" alt="{{@site.title}}" width="120" height="36" loading="eager">
+      {{else}}
+        <span class="c-nav__logo-text">{{@site.title}}</span>
+      {{/if}}
+    </a>
+
+    {{#if @site.navigation}}
+    <nav class="c-nav__links" aria-label="Hauptnavigation">
+      <ul role="list">
+        {{#foreach @site.navigation}}
+          <li><a href="{{url}}"{{#if current}} aria-current="page"{{/if}}>{{label}}</a></li>
+        {{/foreach}}
+      </ul>
+    </nav>
+    {{/if}}
+
+    <div class="c-nav__actions">
+      {{#if @site.members_enabled}}
+        {{#unless @member}}
+          <a href="#/portal/signin" class="c-btn c-btn--ghost c-btn--sm">Anmelden</a>
+          <a href="#/portal/signup" class="c-btn c-btn--primary c-btn--sm">Mitglied werden</a>
+        {{else}}
+          <a href="#/portal/account" class="c-nav__avatar" aria-label="Mein Konto">
+            {{#if @member.avatar_image}}
+              <img src="{{@member.avatar_image}}" alt="{{@member.name}}" width="32" height="32" loading="lazy">
+            {{else}}
+              <span class="c-nav__avatar-initials" aria-hidden="true">{{substr @member.name 0 1}}</span>
+            {{/if}}
+          </a>
+        {{/unless}}
+      {{/if}}
+      <button class="c-nav__burger js-nav-toggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobile-nav">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+  </div>
+
+  {{#if @site.navigation}}
+  <nav class="c-nav__mobile" id="mobile-nav" aria-label="Mobile Navigation" hidden>
+    <ul role="list">
+      {{#foreach @site.navigation}}
+        <li><a href="{{url}}"{{#if current}} aria-current="page"{{/if}}>{{label}}</a></li>
+      {{/foreach}}
+    </ul>
+    {{#if @site.members_enabled}}
+      {{#unless @member}}
+        <a href="#/portal/signup" class="c-btn c-btn--primary">Mitglied werden</a>
+      {{/unless}}
+    {{/if}}
+  </nav>
+  {{/if}}
+
+</header>
+<script>
+(function(){
+  var btn=document.querySelector('.js-nav-toggle'),nav=document.getElementById('mobile-nav');
+  if(!btn||!nav)return;
+  btn.addEventListener('click',function(){
+    var open=btn.getAttribute('aria-expanded')==='true';
+    btn.setAttribute('aria-expanded',String(!open));
+    nav.hidden=open;
+    btn.setAttribute('aria-label',open?'Menü öffnen':'Menü schließen');
+  });
+})();
+</script>

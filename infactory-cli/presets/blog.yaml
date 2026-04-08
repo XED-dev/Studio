@@ -1,0 +1,51 @@
+# presets/blog.yaml — inFactory v0.2
+id: blog
+name: Blog
+icon: "✍"
+description: "Personal Blog, Newsletter, Creator. Lesefreundlich, warm, typografisch."
+
+tokens:
+  color:
+    primary: "#01696f"
+    primary_hover: "#0c4e54"
+    primary_active: "#0f3638"
+    primary_highlight: "#cedcd8"
+  font:
+    display: "'Instrument Serif', 'Georgia', serif"
+    body: "'Work Sans', 'Helvetica Neue', sans-serif"
+
+layout:
+  home:
+    - hero_centered
+    - posts_featured
+    - posts_grid_3col
+    - cta_newsletter
+
+ghost:
+  posts_per_page: 12
+  members_enabled: true
+  custom:
+    - key: header_style
+      type: select
+      options: [static, sticky]
+      default: static
+      description: Header-Verhalten
+    - key: cta_title
+      type: text
+      default: "Kein Artikel verpassen"
+      description: Newsletter-CTA Titel
+    - key: cta_subtitle
+      type: text
+      default: "Direkt in dein Postfach. Kostenlos, jederzeit abmeldbar."
+      description: Newsletter-CTA Untertitel
+    - key: accent_color
+      type: color
+      default: "#01696f"
+      description: Primärfarbe
+
+ai_hints:
+  tone: "Persönlich, einladend. Erste Person erlaubt. Leserin direkt ansprechen."
+  anti_patterns:
+    - "Zu formelle Sprache"
+    - "Feature-Grid auf der Startseite"
+    - "Mehr als 1 Newsletter-CTA"

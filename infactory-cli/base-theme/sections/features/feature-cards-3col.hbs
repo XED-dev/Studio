@@ -1,0 +1,29 @@
+{{!--
+  sections/features/feature-cards-3col.hbs — 3-Column Feature Cards
+  Zeigt 3 Pages mit Tag #feature-card als Cards.
+  Ghost: {{#get}} holt Pages mit dem internen Tag.
+--}}
+<section class="c-feature-cards" aria-label="Highlights">
+  <div class="c-feature-cards__grid">
+    {{#get "pages" filter="tag:hash-feature-card" limit="3" include="tags"}}
+      {{#foreach pages}}
+      <article class="c-feature-card">
+        {{#if feature_image}}
+        <a href="{{url}}" class="c-feature-card__image" tabindex="-1" aria-hidden="true">
+          <img
+            src="{{img_url feature_image size="m"}}"
+            alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+            width="600" height="450" loading="lazy"
+          >
+        </a>
+        {{/if}}
+        <div class="c-feature-card__body">
+          <h3 class="c-feature-card__title">{{title}}</h3>
+          {{#if custom_excerpt}}<p class="c-feature-card__text">{{custom_excerpt}}</p>{{/if}}
+          <a href="{{url}}" class="c-feature-card__link">Mehr erfahren</a>
+        </div>
+      </article>
+      {{/foreach}}
+    {{/get}}
+  </div>
+</section>

@@ -1,0 +1,44 @@
+{{!--
+  sections/hero/hero-slider.hbs — Hero Slider
+  Zeigt die neuesten Featured Posts als Fullwidth-Slider.
+  Ghost: {{#get}} holt featured Posts, JS steuert Rotation.
+--}}
+<section class="c-hero-slider" aria-label="Hero Slider">
+  {{#get "posts" filter="featured:true" limit="4" include="tags"}}
+    {{#if posts}}
+    <div class="c-hero-slider__track">
+      {{#foreach posts}}
+      <div class="c-hero-slider__slide{{#if @first}} active{{/if}}" style="background-image: url({{img_url feature_image size="xl"}});">
+        <div class="c-hero-slider__overlay"></div>
+        <div class="c-hero-slider__content">
+          {{#if primary_tag}}<span class="c-hero-slider__tag">{{primary_tag.name}}</span>{{/if}}
+          <h2 class="c-hero-slider__title">{{title}}</h2>
+          {{#if custom_excerpt}}<p class="c-hero-slider__text">{{custom_excerpt}}</p>{{/if}}
+          <a href="{{url}}" class="c-hero-slider__btn">Mehr erfahren</a>
+        </div>
+      </div>
+      {{/foreach}}
+    </div>
+    <button class="c-hero-slider__arrow c-hero-slider__arrow--prev" aria-label="Vorheriges Bild">&#8249;</button>
+    <button class="c-hero-slider__arrow c-hero-slider__arrow--next" aria-label="Nächstes Bild">&#8250;</button>
+    {{/if}}
+  {{/get}}
+</section>
+<script>
+(function(){
+  var slides=document.querySelectorAll('.c-hero-slider__slide');
+  if(slides.length<2)return;
+  var cur=0,timer;
+  function go(n){
+    slides[cur].classList.remove('active');
+    cur=((n%slides.length)+slides.length)%slides.length;
+    slides[cur].classList.add('active');
+  }
+  function start(){clearInterval(timer);timer=setInterval(function(){go(cur+1);},5000);}
+  start();
+  var p=document.querySelector('.c-hero-slider__arrow--prev');
+  var x=document.querySelector('.c-hero-slider__arrow--next');
+  if(p)p.addEventListener('click',function(){go(cur-1);start();});
+  if(x)x.addEventListener('click',function(){go(cur+1);start();});
+})();
+</script>

@@ -1,0 +1,34 @@
+{{!--
+  sections/posts/news-grid.hbs — News Grid (3-Spalten)
+  Zeigt die neuesten Posts als Card-Grid.
+  Ghost: {{#get}} holt die letzten Posts.
+--}}
+<section class="c-news-grid" aria-label="Aktuelles">
+  <div class="l-wrapper">
+    <h2 class="c-intro__heading">News &amp; Termine</h2>
+
+    <div class="l-grid l-grid--3" style="margin-top: 2rem;">
+      {{#get "posts" limit="3" include="tags,authors"}}
+        {{#foreach posts}}
+        <article class="c-news-card">
+          {{#if feature_image}}
+          <a href="{{url}}" class="c-news-card__image" tabindex="-1" aria-hidden="true">
+            <img
+              src="{{img_url feature_image size="m"}}"
+              alt="{{title}}"
+              width="600" height="338" loading="lazy"
+            >
+          </a>
+          {{/if}}
+          <div class="c-news-card__body">
+            <h3 class="c-news-card__title"><a href="{{url}}">{{title}}</a></h3>
+            <time class="c-news-card__date" datetime="{{date format="YYYY-MM-DD"}}">
+              {{date published_at format="D. MMMM YYYY"}}
+            </time>
+          </div>
+        </article>
+        {{/foreach}}
+      {{/get}}
+    </div>
+  </div>
+</section>

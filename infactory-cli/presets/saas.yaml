@@ -1,0 +1,61 @@
+# presets/saas.yaml — inFactory v0.2
+id: saas
+name: SaaS
+icon: "◆"
+description: "Software-Produkt, B2B-Tool, Startup. Klar, vertrauenswürdig, konversionsorientiert."
+
+tokens:
+  color:
+    primary: "#2563eb"
+    primary_hover: "#1d4ed8"
+    primary_active: "#1e40af"
+    primary_highlight: "#dbeafe"
+  font:
+    display: "'Cabinet Grotesk', 'Georgia', serif"
+    body: "'Satoshi', 'Inter', sans-serif"
+
+layout:
+  home:
+    - hero_split
+    - social_proof_bar
+    - features_3col
+    - posts_grid_3col
+    - cta_newsletter
+
+ghost:
+  posts_per_page: 6
+  members_enabled: true
+  custom:
+    - key: header_style
+      type: select
+      options: [static, sticky]
+      default: sticky
+      description: Header-Verhalten
+    - key: hero_type
+      type: select
+      options: [split, centered]
+      default: split
+      description: Hero-Layout
+    - key: cta_title
+      type: text
+      default: "Immer auf dem neuesten Stand"
+      description: Newsletter-CTA Titel
+    - key: cta_subtitle
+      type: text
+      default: "Product Updates, Tutorials und Best Practices. Kein Spam."
+      description: Newsletter-CTA Untertitel
+    - key: accent_color
+      type: color
+      default: "#2563eb"
+      description: Primärfarbe
+    - key: proof_text
+      type: text
+      default: "Trusted by 500+ teams"
+      description: Social-Proof-Bar Text
+
+ai_hints:
+  tone: "Vertrauenswürdig, lösungsorientiert. Zeigt Benefit vor Feature. Keine Tech-Buzzwords."
+  anti_patterns:
+    - "Gradient-Buttons"
+    - "Zu viele Farben"
+    - "Generic hero copy: 'Unlock the power of...'"

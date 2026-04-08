@@ -1,0 +1,63 @@
+# .github/workflows/ghost-theme-check.yml
+# Automatische Theme-Validierung bei jedem Push
+name: Ghost Theme Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: gscan Theme Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install gscan
+        run: npm install -g gscan
+
+      - name: Run gscan validation
+        run: gscan . --verbose
+
+      - name: Check package.json
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            if (!pkg.engines?.ghost) { console.error('Missing engines.ghost'); process.exit(1); }
+            if (!pkg.config?.posts_per_page) { console.error('Missing posts_per_page'); process.exit(1); }
+            console.log('✔ package.json valid');
+          "
+
+  zip:
+    name: Build Theme ZIP
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create theme ZIP
+        run: |
+          THEME_NAME=$(node -p "require('./package.json').name")
+          zip -r "${THEME_NAME}.zip" . \
+            --exclude "*.git*" \
+            --exclude "node_modules/*" \
+            --exclude ".github/*" \
+            --exclude "*.md" \
+            --exclude "SCHEMA.md"
+          echo "✔ ${THEME_NAME}.zip created"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghost-theme-zip
+          path: "*.zip"
+          retention-days: 30

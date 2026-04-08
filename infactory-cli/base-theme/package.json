@@ -1,0 +1,80 @@
+{
+  "name": "infactory-base",
+  "description": "inFactory Base Theme — Ghost 5.x compatible",
+  "version": "0.2.0",
+  "engines": {
+    "ghost": ">=5.0.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ghost-theme",
+    "infactory",
+    "open-source"
+  ],
+  "config": {
+    "posts_per_page": 9,
+    "image_sizes": {
+      "xxs": {
+        "width": 30
+      },
+      "xs": {
+        "width": 100
+      },
+      "s": {
+        "width": 300
+      },
+      "m": {
+        "width": 600
+      },
+      "l": {
+        "width": 1000
+      },
+      "xl": {
+        "width": 2000
+      }
+    },
+    "card_assets": true,
+    "custom": {
+      "header_style": {
+        "type": "select",
+        "options": [
+          "static",
+          "sticky",
+          "transparent"
+        ],
+        "default": "static",
+        "description": "Header-Verhalten"
+      },
+      "post_card_style": {
+        "type": "select",
+        "options": [
+          "image-top",
+          "image-left",
+          "text-only"
+        ],
+        "default": "image-top",
+        "description": "Karten-Layout in Listen und Grids"
+      },
+      "hero_type": {
+        "type": "select",
+        "options": [
+          "centered",
+          "split",
+          "fullscreen"
+        ],
+        "default": "centered",
+        "description": "Hero-Section-Typ auf der Startseite"
+      },
+      "cta_title": {
+        "type": "text",
+        "default": "Bleib auf dem Laufenden",
+        "description": "Newsletter-CTA Titel"
+      },
+      "cta_subtitle": {
+        "type": "text",
+        "default": "Kein Spam. Jederzeit abmeldbar.",
+        "description": "Newsletter-CTA Untertitel"
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{{!--
+  page.hbs — Statische Seite
+  Erbt von: default.hbs
+  WICHTIG: {{#post}} öffnet den Page-Kontext!
+--}}
+
+{{!< default}}
+
+{{#post}}
+<article class="c-article c-article--page">
+
+  {{#if feature_image}}
+  <div class="c-hero-image">
+    <img
+      srcset="{{img_url feature_image size="l"}} 1000w, {{img_url feature_image size="xl"}} 2000w"
+      sizes="100vw"
+      src="{{img_url feature_image size="xl"}}"
+      alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+      width="2000" height="600" loading="eager"
+    >
+    <div class="c-hero-image__separator"></div>
+  </div>
+  {{/if}}
+
+  <div class="c-title-bar">
+    <div class="l-wrapper">
+      <h1 class="c-title-bar__heading">{{title}}</h1>
+      {{#if custom_excerpt}}
+        <p class="c-title-bar__subtitle">{{custom_excerpt}}</p>
+      {{/if}}
+    </div>
+  </div>
+
+  <div class="c-article__body l-wrapper gh-content">
+    {{content}}
+  </div>
+
+</article>
+{{/post}}

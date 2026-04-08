@@ -1,0 +1,31 @@
+{{!--
+  tag.hbs — Tag-Archiv
+  Erbt von: default.hbs
+--}}
+
+{{!< default}}
+
+<div class="c-title-bar">
+  <div class="l-wrapper">
+    <h1 class="c-title-bar__heading">{{name}}</h1>
+    {{#if description}}<p class="c-title-bar__subtitle">{{description}}</p>{{/if}}
+  </div>
+</div>
+
+<div class="l-wrapper" style="padding: 3rem 0;">
+  <div class="l-grid l-grid--3">
+    {{#foreach posts}}
+    <article class="c-news-card">
+      {{#if feature_image}}
+      <a href="{{url}}" class="c-news-card__image">
+        <img src="{{img_url feature_image size="m"}}" alt="{{title}}" width="600" height="338" loading="lazy">
+      </a>
+      {{/if}}
+      <div class="c-news-card__body">
+        <h3 class="c-news-card__title"><a href="{{url}}">{{title}}</a></h3>
+        <time class="c-news-card__date" datetime="{{date format="YYYY-MM-DD"}}">{{date published_at format="D. MMMM YYYY"}}</time>
+      </div>
+    </article>
+    {{/foreach}}
+  </div>
+</div>

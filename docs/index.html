@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XED /Studio — AI-Agent-First Ghost Theme Factory</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 680px; margin: 0 auto; padding: 24px 20px 80px; background: #0d1117; color: #c9d1d9; line-height: 1.6; }
+    h1 { font-family: monospace; color: #58a6ff; font-size: 2rem; margin: 0.5rem 0 0.2rem; }
+    .tagline { color: #8b949e; font-size: 1.1rem; margin-bottom: 2rem; }
+    h2 { color: #e6edf3; font-size: 1.05rem; margin-top: 2rem; margin-bottom: 0.5rem; }
+    code { font-family: monospace; background: #161b22; padding: 2px 7px; border-radius: 4px; color: #79c0ff; font-size: 0.9em; }
+    pre { background: #161b22; border: 1px solid #30363d; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 0.95rem; }
+    pre code { background: none; padding: 0; color: #e6edf3; }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .install-box { background: #161b22; border: 1px solid #388bfd55; border-radius: 8px; padding: 20px 24px; margin: 1.5rem 0; }
+    .install-box h2 { margin-top: 0; color: #58a6ff; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.9rem; }
+    th { text-align: left; color: #8b949e; font-weight: 500; border-bottom: 1px solid #30363d; padding: 6px 12px 6px 0; }
+    td { padding: 5px 12px 5px 0; border-bottom: 1px solid #21262d; vertical-align: top; }
+    td:first-child { color: #e6edf3; white-space: nowrap; }
+    .check { color: #3fb950; }
+    .cross { color: #f85149; }
+    .links { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #21262d; color: #8b949e; font-size: 0.9rem; }
+    .links a { color: #8b949e; }
+    .links a:hover { color: #58a6ff; }
+    .arch { font-family: monospace; font-size: 0.85rem; line-height: 1.5; color: #8b949e; }
+    .arch strong { color: #e6edf3; }
+  </style>
+</head>
+<body>
+
+  <h1>XED /Studio</h1>
+  <p class="tagline">AI-Agent-First Ghost Theme Factory &mdash; from preset to production in seconds.</p>
+
+  <div class="install-box">
+    <h2>Quick Start</h2>
+    <pre><code>git clone https://github.com/XED-dev/Studio.git
+cd Studio/infactory-cli && npm install
+
+# Build a Ghost theme
+node bin/infactory.js build --preset=blog --zip
+
+# Deploy to Ghost
+INFACTORY_GHOST_URL=https://your.ghost.site \
+INFACTORY_GHOST_KEY=id:secret \
+node bin/infactory.js deploy --preset=blog</code></pre>
+    <p style="margin:0.5rem 0 0; color:#8b949e; font-size:0.85rem;">
+      Requires: Node.js 18+ &middot; <a href="https://ghost.org">Ghost CMS</a> 6.x
+    </p>
+  </div>
+
+  <h2>What it does</h2>
+  <p>XED /Studio turns YAML preset files into production-ready Ghost themes. Define your design tokens (colors, fonts, spacing), pick sections from the library, and deploy &mdash; all from the terminal. Built for AI coding agents, not mouse clicks.</p>
+
+  <h2>Two components</h2>
+  <table>
+    <tr><th>Component</th><th>Purpose</th></tr>
+    <tr><td><code>infactory-cli</code></td><td>Build Ghost themes from YAML presets. Scaffold, preview, deploy.</td></tr>
+    <tr><td><code>infactory-server</code></td><td>Factory Floor Controller on your Ghost host. REST API for remote agents.</td></tr>
+  </table>
+
+  <h2>Architecture</h2>
+  <pre class="arch"><strong>AI Agent</strong> (terminal)          <strong>Ghost Host</strong>
+&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;  HTTPS   &#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+&#x2502; Claude Code      &#x2502; &#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2192; &#x2502; inFactory Server     &#x2502;
+&#x2502; Gemini CLI       &#x2502; API-Key &#x2502;  &#x251C; Theme Build+Deploy &#x2502;
+&#x2502; any CLI agent    &#x2502;         &#x2502;  &#x251C; Content CRUD       &#x2502;
+&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;         &#x2502;  &#x251C; Image Migration    &#x2502;
+                              &#x2502;  &#x2514; Ghost Restart      &#x2502;
+                              &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;</pre>
+
+  <h2>Why CLI-first?</h2>
+  <table>
+    <tr><th>Feature</th><th>XED /Studio</th><th>Others</th></tr>
+    <tr><td>CLI interface</td><td class="check">&#x2705;</td><td class="cross">&#x274C; Elementor, v0, Lovable</td></tr>
+    <tr><td>Ghost CMS native</td><td class="check">&#x2705;</td><td class="cross">&#x274C; WordPress or React only</td></tr>
+    <tr><td>AI agent as primary user</td><td class="check">&#x2705;</td><td class="cross">&#x274C; GUI-first, human-first</td></tr>
+    <tr><td>Open source (MIT)</td><td class="check">&#x2705;</td><td class="cross">&#x274C; Proprietary or GPL</td></tr>
+    <tr><td>Zero external deps for core</td><td class="check">&#x2705;</td><td class="cross">&#x274C; Heavy dependency trees</td></tr>
+  </table>
+
+  <h2>Built-in presets</h2>
+  <table>
+    <tr><th>Preset</th><th>Use case</th><th>Sections</th></tr>
+    <tr><td><code>blog</code></td><td>Personal blog, newsletter</td><td>4</td></tr>
+    <tr><td><code>agency</code></td><td>Digital agency, studio</td><td>4</td></tr>
+    <tr><td><code>saas</code></td><td>B2B tool, startup</td><td>5</td></tr>
+    <tr><td><code>studio</code></td><td>Portfolio, multi-use</td><td>4</td></tr>
+  </table>
+
+  <h2>Server API</h2>
+  <table>
+    <tr><th>Endpoint</th><th>What it does</th></tr>
+    <tr><td><code>POST /api/theme/build</code></td><td>Build preset into Ghost theme ZIP</td></tr>
+    <tr><td><code>POST /api/theme/deploy</code></td><td>Build + upload + activate on Ghost</td></tr>
+    <tr><td><code>POST /api/ghost/pages</code></td><td>Create or update a Ghost page</td></tr>
+    <tr><td><code>POST /api/ghost/images/migrate</code></td><td>Migrate all images of a page to Ghost</td></tr>
+    <tr><td><code>POST /api/system/restart</code></td><td>Restart Ghost CMS</td></tr>
+    <tr><td><code>GET /api/health</code></td><td>Server + Ghost status</td></tr>
+  </table>
+  <p style="color:#8b949e; font-size:0.85rem;">17 endpoints total. See <a href="https://github.com/XED-dev/Studio/blob/main/infactory-server/README.md">full API reference</a>.</p>
+
+  <div class="links">
+    <a href="https://github.com/XED-dev/Studio">GitHub</a>
+    <a href="https://github.com/XED-dev/Studio/blob/main/LICENSE">MIT License</a>
+    <a href="https://xed.dev">XED /Suite</a>
+    <a href="https://ghost.org">Ghost CMS</a>
+  </div>
+
+</body>
+</html>

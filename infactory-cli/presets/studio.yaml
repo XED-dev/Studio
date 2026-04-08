@@ -1,0 +1,48 @@
+# presets/studio.yaml — inFactory v0.2
+id: studio
+name: Studio
+icon: "✦"
+description: "Freelancer, Designer, Fotograf, Kreativstudio. Visuell, minimalistisch, premium."
+
+tokens:
+  color:
+    primary: "#8b5e3c"
+    primary_hover: "#6e4a2e"
+    primary_active: "#52361f"
+    primary_highlight: "#e8ddd4"
+  font:
+    display: "'Zodiak', 'Georgia', serif"
+    body: "'Satoshi', 'Inter', sans-serif"
+
+layout:
+  home:
+    - hero_split
+    - posts_grid_2col
+    - about_split
+    - cta_newsletter
+
+ghost:
+  posts_per_page: 8
+  members_enabled: false
+  custom:
+    - key: header_style
+      type: select
+      options: [static, transparent]
+      default: static
+      description: Header-Verhalten
+    - key: hero_type
+      type: select
+      options: [split, fullscreen]
+      default: split
+      description: Hero-Layout
+    - key: accent_color
+      type: color
+      default: "#8b5e3c"
+      description: Primärfarbe
+
+ai_hints:
+  tone: "Visuell und knapp. Weniger Text, mehr Wirkung. Leistungen zeigen, nicht erklären."
+  anti_patterns:
+    - "Zu viel Text im Hero"
+    - "3-spaltiges Feature-Grid"
+    - "Icons mit farbigem Hintergrund"

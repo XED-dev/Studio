@@ -1,0 +1,200 @@
+/* ==========================================================================
+   base.css — inFactory Base Theme
+   Reset, Typography, Ghost Content, Layout Utilities
+   ========================================================================== */
+
+/* --- Reset --- */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; }
+img { max-width: 100%; height: auto; display: block; }
+iframe { max-width: 100%; }
+ul[role="list"] { list-style: none; padding: 0; margin: 0; }
+a { color: var(--color-primary); text-underline-offset: 0.15em; }
+a:hover { color: var(--color-primary-hover); }
+
+/* --- Typography --- */
+body {
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+:is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-heading);
+  color: var(--color-text-heading);
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+h1 { font-size: clamp(1.8rem, 1.5rem + 1.5vw, 2.5rem); }
+h2 { font-size: clamp(1.4rem, 1.2rem + 1vw, 1.8rem); }
+h3 { font-size: clamp(1.2rem, 1.1rem + 0.5vw, 1.5rem); }
+:is(h2, h3):not(:first-child) { margin-top: 2em; }
+p { margin: 0 0 1em; }
+
+/* --- Layout Utilities --- */
+.l-wrapper {
+  width: min(100%, var(--max-width, 1220px));
+  margin-inline: auto;
+  padding-inline: var(--spacing, clamp(1rem, 5vw, 3rem));
+}
+
+.l-grid {
+  display: grid;
+  gap: var(--grid-gap, 2rem);
+}
+.l-grid--3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.l-grid--2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+
+/* --- Ghost Content Styles (gh-content) --- */
+.gh-content {
+  --content-width: min(100%, 780px);
+  --wide-width: min(100%, 1100px);
+}
+
+.gh-content > * {
+  width: var(--content-width);
+  margin-inline: auto;
+}
+
+.gh-content > * + * {
+  margin-top: 1.5em;
+}
+
+.gh-content > .kg-width-wide {
+  width: var(--wide-width);
+}
+
+.kg-width-wide {
+  width: min(100%, 1100px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.gh-content > .kg-width-full,
+.kg-width-full {
+  width: 100%;
+  margin-left: calc(-50vw + 50%);
+}
+
+/* Ghost Koenig Editor Cards */
+.kg-image-card, .kg-gallery-card { margin: 2em auto; }
+.kg-image-card img { margin: 0 auto; }
+.kg-image-card figcaption,
+.kg-gallery-card figcaption {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: 0.5em;
+}
+
+.kg-bookmark-card {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.kg-bookmark-card .kg-bookmark-container {
+  display: flex;
+  text-decoration: none;
+  color: inherit;
+}
+
+.kg-bookmark-card .kg-bookmark-content {
+  flex: 1;
+  padding: 1.25rem;
+}
+
+.kg-bookmark-card .kg-bookmark-thumbnail {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.kg-bookmark-card .kg-bookmark-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Ghost Callout Card */
+.kg-callout-card {
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+/* Ghost Button Card */
+.kg-button-card {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+}
+
+.kg-button-card a {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  background: var(--color-primary);
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.kg-button-card a:hover {
+  background: var(--color-primary-hover);
+  color: #fff;
+}
+
+/* Ghost Gallery */
+.kg-gallery-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.kg-gallery-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.kg-gallery-row img {
+  flex: 1;
+  object-fit: cover;
+}
+
+/* Ghost Toggle Card */
+.kg-toggle-card {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+}
+
+/* Ghost Header Card */
+.kg-header-card {
+  padding: clamp(3rem, 8vw, 6rem) clamp(1rem, 4vw, 3rem);
+  text-align: center;
+}
+
+.kg-header-card h2 {
+  font-size: clamp(1.5rem, 1rem + 2vw, 3rem);
+  margin: 0 0 0.5em;
+}
+
+/* --- Screen Reader Only --- */
+.u-skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: 999;
+  padding: 0.5em 1em;
+  background: var(--color-primary);
+  color: #fff;
+}
+.u-skip-link:focus {
+  left: 0;
+  top: 0;
+}

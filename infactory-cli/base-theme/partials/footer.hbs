@@ -1,0 +1,40 @@
+{{!--
+  partials/footer.hbs — inFactory Base Theme
+  Site Footer mit Navigation, Social Links, Ghost-Badge.
+--}}
+<footer class="c-footer" role="contentinfo">
+  <div class="c-footer__inner l-wrapper">
+
+    <div class="c-footer__brand">
+      {{#if @site.logo}}
+        <a href="{{@site.url}}" aria-label="{{@site.title}} Startseite">
+          <img src="{{img_url @site.logo}}" alt="{{@site.title}}" width="100" height="30" loading="lazy">
+        </a>
+      {{else}}
+        <a href="{{@site.url}}" class="c-footer__site-name">{{@site.title}}</a>
+      {{/if}}
+      {{#if @site.description}}
+        <p class="c-footer__tagline">{{@site.description}}</p>
+      {{/if}}
+    </div>
+
+    {{#if @site.secondary_navigation}}
+    <nav class="c-footer__nav" aria-label="Footer Navigation">
+      <ul role="list">
+        {{#foreach @site.secondary_navigation}}
+          <li><a href="{{url}}">{{label}}</a></li>
+        {{/foreach}}
+      </ul>
+    </nav>
+    {{/if}}
+
+    <div class="c-footer__bottom">
+      <p class="c-footer__copy">
+        © {{date "" format="YYYY"}} {{@site.title}} ·
+        <a href="https://ghost.org" rel="noopener noreferrer" target="_blank">Ghost</a> &amp;
+        <a href="https://infactory.dev" rel="noopener noreferrer" target="_blank">inFactory</a>
+      </p>
+    </div>
+
+  </div>
+</footer>
