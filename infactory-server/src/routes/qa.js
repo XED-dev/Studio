@@ -4,6 +4,10 @@
  * Portiert die 3 Sensoren aus infactory-cli/src/qa.js als REST-Endpunkte.
  * Der Server nutzt sein EIGENES venv (venvPath aus config).
  *
+ * Pixel-Sensor: Honeydiff (Rust, primaer) → pixelmatch (JS, Fallback)
+ * CSS-Sensor:   shot-scraper getComputedStyle()
+ * Struktur-Sensor: crawl4ai + shot-scraper DOM-Analyse
+ *
  * Endpunkte:
  *   POST /api/qa/compare    { source, target, width }  → 3-Sensor Report
  *   POST /api/qa/batch      { source_base, target_base, slugs }
@@ -20,12 +24,25 @@ const config  = require('../config');
 
 const router = express.Router();
 
+// ─── Honeydiff Lazy Loading (ESM via dynamic import) ─────────────────────────
+
+let _honeydiff = undefined;  // undefined = not loaded yet, null = failed
+
+async function getHoneydiff() {
+  if (_honeydiff !== undefined) return _honeydiff;
+  try {
+    _honeydiff = await import('@vizzly-testing/honeydiff');
+    console.log('[QA] Honeydiff loaded (Rust pixel engine)');
+  } catch (err) {
+    _honeydiff = null;
+    console.warn('[QA] Honeydiff not available, using pixelmatch fallback:', err.message);
+  }
+  return _honeydiff;
+}
+
 // ─── Tool Resolution ─────────────────────────────────────────────────────────
 
-// Playwright-Browser liegen in /opt/infactory/browsers/ (install.sh setzt das)
-// PLAYWRIGHT_BROWSERS_PATH muss bei jedem Subprocess gesetzt werden, damit
-// shot-scraper/playwright die Browser findet — egal welcher User den Server startet.
-const INSTALL_DIR = path.dirname(config.venvPath);  // /opt/infactory
+const INSTALL_DIR = path.dirname(config.venvPath);
 const BROWSERS_PATH = path.join(INSTALL_DIR, 'browsers');
 
 function getSubprocessEnv() {
@@ -50,7 +67,6 @@ function getShotScraper() {
 }
 
 function getExtractPy() {
-  // extract-structure.py liegt im CLI-Verzeichnis
   const p = path.join(config.cliPath, 'src', 'extract-structure.py');
   if (!fs.existsSync(p)) return null;
   return p;
@@ -94,21 +110,64 @@ const CSS_SELECTORS = [
   { name: 'Button',        selector: 'button, .button, [class*="btn"]', props: ['backgroundColor', 'color', 'borderRadius', 'padding', 'fontFamily'] },
 ];
 
-// ─── Sensor 1: odiff (Pixel-Diff) ────────────────────────────────────────────
+// ─── Sensor 1: Pixel-Diff (Honeydiff primaer, pixelmatch Fallback) ───────────
 
 async function comparePixels(imgPath1, imgPath2, diffOutputPath) {
+  const honeydiff = await getHoneydiff();
+
+  if (honeydiff) {
+    return compareWithHoneydiff(honeydiff, imgPath1, imgPath2, diffOutputPath);
+  }
+  return compareWithPixelmatch(imgPath1, imgPath2, diffOutputPath);
+}
+
+async function compareWithHoneydiff(honeydiff, imgPath1, imgPath2, diffOutputPath) {
+  const result = await honeydiff.compare(imgPath1, imgPath2, {
+    antialiasing: true,
+    includeClusters: true,
+    clusterMerge: true,
+    includeSSIM: true,
+    includeGMSD: true,
+    minClusterSize: 2,
+    diffPath: diffOutputPath,
+    overwrite: true,
+  });
+
+  const similarity = Math.round((100 - result.diffPercentage) * 100) / 100;
+
+  return {
+    engine: 'honeydiff',
+    similarity,
+    diffPercentage: Math.round(result.diffPercentage * 100) / 100,
+    diffPixels: result.diffPixels,
+    match: !result.isDifferent,
+    layoutDiff: result.heightDiff !== null,
+    heightDiff: result.heightDiff,
+    boundingBox: result.boundingBox,
+    perceptualScore: result.perceptualScore,
+    gmsdScore: result.gmsdScore,
+    aaPixelsIgnored: result.aaPixelsIgnored,
+    clusters: result.diffClusters ? result.diffClusters.map(c => ({
+      pixelCount: c.pixelCount,
+      center: c.centerOfMass,
+      avgIntensity: Math.round(c.avgIntensity * 10) / 10,
+      boundingBox: c.boundingBox,
+    })) : [],
+    clusterCount: result.diffClusters ? result.diffClusters.length : 0,
+  };
+}
+
+function compareWithPixelmatch(imgPath1, imgPath2, diffOutputPath) {
   const pixelmatch = require('pixelmatch');
   const { PNG }    = require('pngjs');
 
   const img1 = PNG.sync.read(fs.readFileSync(imgPath1));
   const img2 = PNG.sync.read(fs.readFileSync(imgPath2));
 
-  // Bei unterschiedlichen Groessen: auf kleinere Groesse zuschneiden
   const width  = Math.min(img1.width, img2.width);
   const height = Math.min(img1.height, img2.height);
   const layoutDiff = (img1.width !== img2.width || img1.height !== img2.height);
 
-  // Bilder auf gleiche Groesse bringen (crop)
   function cropData(img, w, h) {
     if (img.width === w && img.height === h) return img.data;
     const out = Buffer.alloc(w * h * 4);
@@ -131,16 +190,26 @@ async function comparePixels(imgPath1, imgPath2, diffOutputPath) {
   const diffPercentage = Math.round((diffPixels / totalPixels) * 10000) / 100;
   const similarity     = Math.round((100 - diffPercentage) * 100) / 100;
 
-  // Diff-Bild speichern
   fs.writeFileSync(diffOutputPath, PNG.sync.write(diff));
 
   return {
+    engine: 'pixelmatch',
     similarity,
     diffPercentage,
     diffPixels,
     match: diffPixels === 0,
-    reason: layoutDiff ? 'layout-diff' : (diffPixels > 0 ? 'pixel-diff' : null),
     layoutDiff,
+    heightDiff: layoutDiff ? {
+      height1: img1.height,
+      height2: img2.height,
+      extraPixels: Math.abs(img1.height - img2.height) * width,
+    } : null,
+    boundingBox: null,
+    perceptualScore: null,
+    gmsdScore: null,
+    aaPixelsIgnored: 0,
+    clusters: [],
+    clusterCount: 0,
   };
 }
 
@@ -430,6 +499,13 @@ function compareStructure(srcStruct, tgtStruct) {
  * POST /api/qa/compare
  * Body: { source: "https://...", target: "https://...", width: 1440 }
  * Returns: Full 3-sensor QA report as JSON
+ *
+ * Pixel-Sensor liefert jetzt (mit Honeydiff):
+ *   - clusters: Array von { pixelCount, center, avgIntensity, boundingBox }
+ *   - perceptualScore: SSIM 0.0-1.0
+ *   - gmsdScore: GMSD 0.0+ (lower = more similar)
+ *   - boundingBox: Gesamte Diff-Region
+ *   - engine: "honeydiff" oder "pixelmatch"
  */
 router.post('/compare', async (req, res) => {
   if (!requireVenv(res)) return;
@@ -454,16 +530,24 @@ router.post('/compare', async (req, res) => {
     errors: [],
   };
 
-  // Sensor 1: Pixel-Diff
+  // Sensor 1: Pixel-Diff (Honeydiff primaer, pixelmatch Fallback)
   try {
     takeScreenshot(source, srcPng, { width });
     takeScreenshot(target, tgtPng, { width });
     const pixelResult = await comparePixels(srcPng, tgtPng, diffPng);
     report.pixel = {
+      engine: pixelResult.engine,
       similarity: pixelResult.similarity,
       diffPercentage: pixelResult.diffPercentage,
       diffPixels: pixelResult.diffPixels,
       layoutDiff: pixelResult.layoutDiff,
+      heightDiff: pixelResult.heightDiff,
+      boundingBox: pixelResult.boundingBox,
+      perceptualScore: pixelResult.perceptualScore,
+      gmsdScore: pixelResult.gmsdScore,
+      aaPixelsIgnored: pixelResult.aaPixelsIgnored,
+      clusters: pixelResult.clusters,
+      clusterCount: pixelResult.clusterCount,
     };
   } catch (err) {
     report.errors.push({ sensor: 'pixel', message: err.message.substring(0, 800) });
@@ -546,7 +630,14 @@ router.post('/batch', async (req, res) => {
       takeScreenshot(source, srcPng, { width });
       takeScreenshot(target, tgtPng, { width });
       const pixelResult = await comparePixels(srcPng, tgtPng, diffPng);
-      entry.pixel = { similarity: pixelResult.similarity, layoutDiff: pixelResult.layoutDiff };
+      entry.pixel = {
+        engine: pixelResult.engine,
+        similarity: pixelResult.similarity,
+        layoutDiff: pixelResult.layoutDiff,
+        perceptualScore: pixelResult.perceptualScore,
+        gmsdScore: pixelResult.gmsdScore,
+        clusterCount: pixelResult.clusterCount,
+      };
     } catch (err) {
       entry.errors.push({ sensor: 'pixel', message: err.message.substring(0, 150) });
     }
