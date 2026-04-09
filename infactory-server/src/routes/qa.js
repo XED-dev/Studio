@@ -97,24 +97,50 @@ const CSS_SELECTORS = [
 // ─── Sensor 1: odiff (Pixel-Diff) ────────────────────────────────────────────
 
 async function comparePixels(imgPath1, imgPath2, diffOutputPath) {
-  const { compare } = require('odiff-bin');
+  const pixelmatch = require('pixelmatch');
+  const { PNG }    = require('pngjs');
 
-  const result = await compare(imgPath1, imgPath2, diffOutputPath, {
+  const img1 = PNG.sync.read(fs.readFileSync(imgPath1));
+  const img2 = PNG.sync.read(fs.readFileSync(imgPath2));
+
+  // Bei unterschiedlichen Groessen: auf kleinere Groesse zuschneiden
+  const width  = Math.min(img1.width, img2.width);
+  const height = Math.min(img1.height, img2.height);
+  const layoutDiff = (img1.width !== img2.width || img1.height !== img2.height);
+
+  // Bilder auf gleiche Groesse bringen (crop)
+  function cropData(img, w, h) {
+    if (img.width === w && img.height === h) return img.data;
+    const out = Buffer.alloc(w * h * 4);
+    for (let y = 0; y < h; y++) {
+      img.data.copy(out, y * w * 4, y * img.width * 4, y * img.width * 4 + w * 4);
+    }
+    return out;
+  }
+
+  const data1 = cropData(img1, width, height);
+  const data2 = cropData(img2, width, height);
+  const diff  = new PNG({ width, height });
+
+  const diffPixels = pixelmatch(data1, data2, diff.data, width, height, {
     threshold: 0.1,
-    antialiasing: true,
-    outputDiffMask: false,
+    includeAA: false,
   });
 
-  const diffPercentage = result.diffPercentage || 0;
+  const totalPixels = width * height;
+  const diffPercentage = Math.round((diffPixels / totalPixels) * 10000) / 100;
   const similarity     = Math.round((100 - diffPercentage) * 100) / 100;
+
+  // Diff-Bild speichern
+  fs.writeFileSync(diffOutputPath, PNG.sync.write(diff));
 
   return {
     similarity,
     diffPercentage,
-    diffPixels: result.diffCount || 0,
-    match: result.match || false,
-    reason: result.reason || null,
-    layoutDiff: result.reason === 'layout-diff',
+    diffPixels,
+    match: diffPixels === 0,
+    reason: layoutDiff ? 'layout-diff' : (diffPixels > 0 ? 'pixel-diff' : null),
+    layoutDiff,
   };
 }
 
