@@ -151,7 +151,7 @@ async function install(opts = {}) {
     if (fs.existsSync(path.join(dir, 'package.json'))) {
       info(`  npm install in ${path.basename(dir)}/...`);
       try {
-        execSync('npm install --production', {
+        execSync('npm install --omit=dev', {
           cwd: dir, stdio: verbose ? 'inherit' : 'pipe',
         });
       } catch (err) {
@@ -400,7 +400,7 @@ function update(opts = {}) {
     // npm install
     for (const dir of [serverDir, cliDir]) {
       if (fs.existsSync(path.join(dir, 'package.json'))) {
-        execSync('npm install --production', { cwd: dir, stdio: verbose ? 'inherit' : 'pipe' });
+        execSync('npm install --omit=dev', { cwd: dir, stdio: verbose ? 'inherit' : 'pipe' });
       }
     }
 

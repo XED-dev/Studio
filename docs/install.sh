@@ -67,8 +67,8 @@ if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/infactory-cli/bin/infactory.js" ]
   info "Bestehende Installation gefunden — Update..."
   cd "$INSTALL_DIR"
   git pull --ff-only 2>/dev/null || true
-  cd infactory-cli && npm install --production --silent 2>/dev/null
-  cd ../infactory-server && npm install --production --silent 2>/dev/null
+  cd infactory-cli && npm install --omit=dev --silent 2>/dev/null
+  cd ../infactory-server && npm install --omit=dev --silent 2>/dev/null
   cd ..
   ok "Update abgeschlossen"
 else
@@ -90,8 +90,8 @@ else
 
   # npm install
   info "Dependencies installieren..."
-  cd "$INSTALL_DIR/infactory-cli" && npm install --production --silent 2>/dev/null
-  cd "$INSTALL_DIR/infactory-server" && npm install --production --silent 2>/dev/null
+  cd "$INSTALL_DIR/infactory-cli" && npm install --omit=dev --silent 2>/dev/null
+  cd "$INSTALL_DIR/infactory-server" && npm install --omit=dev --silent 2>/dev/null
   ok "Dependencies installiert"
 fi
 
