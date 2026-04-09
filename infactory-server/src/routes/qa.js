@@ -136,7 +136,7 @@ function takeScreenshot(url, outputPath, { width = 1440, wait = 2000 } = {}) {
   });
 
   if (result.status !== 0) {
-    throw new Error(`Screenshot failed: ${(result.stderr || '').substring(0, 200)}`);
+    throw new Error(`Screenshot failed: ${(result.stderr || '').substring(0, 500)}`);
   }
   return outputPath;
 }
@@ -166,7 +166,7 @@ function extractCSSTokens(url) {
     env: getSubprocessEnv(),
   });
 
-  if (result.status !== 0) throw new Error(`CSS extraction failed: ${(result.stderr || '').substring(0, 200)}`);
+  if (result.status !== 0) throw new Error(`CSS extraction failed: ${(result.stderr || '').substring(0, 800)}`);
 
   let output = result.stdout.trim();
   if (output.startsWith('"') && output.endsWith('"')) output = JSON.parse(output);
@@ -440,7 +440,7 @@ router.post('/compare', async (req, res) => {
       layoutDiff: pixelResult.layoutDiff,
     };
   } catch (err) {
-    report.errors.push({ sensor: 'pixel', message: err.message.substring(0, 200) });
+    report.errors.push({ sensor: 'pixel', message: err.message.substring(0, 800) });
   }
 
   // Sensor 2: CSS-Tokens
@@ -456,7 +456,7 @@ router.post('/compare', async (req, res) => {
       diffs: cssResult.filter(d => !d.match),
     };
   } catch (err) {
-    report.errors.push({ sensor: 'css', message: err.message.substring(0, 200) });
+    report.errors.push({ sensor: 'css', message: err.message.substring(0, 800) });
   }
 
   // Sensor 3: Struktur
@@ -470,7 +470,7 @@ router.post('/compare', async (req, res) => {
       diffs: structResult.diffs,
     };
   } catch (err) {
-    report.errors.push({ sensor: 'structure', message: err.message.substring(0, 200) });
+    report.errors.push({ sensor: 'structure', message: err.message.substring(0, 800) });
   }
 
   // Gesamt-Score
