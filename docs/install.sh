@@ -6,10 +6,12 @@
 
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 REPO="https://github.com/XED-dev/Studio.git"
 INSTALL_DIR="/opt/infactory"
 BIN_LINK="/usr/local/bin/infactory"
+VENV_DIR="$INSTALL_DIR/venv"
+REFERENCES_DIR="$INSTALL_DIR/references"
 
 # Colors
 RED='\033[0;31m'
@@ -93,6 +95,104 @@ else
   ok "Dependencies installiert"
 fi
 
+# ─── Python venv (QA-Tools) ───────────────────────────────────────────────────
+
+info "Python venv für QA-Tools..."
+
+if ! command -v python3 &>/dev/null; then
+  err "Python3 nicht gefunden. Install: sudo apt install -y python3 python3-venv python3-pip"
+  echo "     QA-Tools (shot-scraper, crawl4ai) werden NICHT installiert."
+  echo "     Der Server funktioniert ohne QA — QA-Endpunkte geben Fehler zurück."
+else
+  PYTHON_MAJOR=$(python3 -c "import sys; print(sys.version_info.major)")
+  PYTHON_MINOR=$(python3 -c "import sys; print(sys.version_info.minor)")
+  if [ "$PYTHON_MAJOR" -lt 3 ] || [ "$PYTHON_MINOR" -lt 9 ]; then
+    err "Python ${PYTHON_MAJOR}.${PYTHON_MINOR} gefunden — mindestens 3.9 erforderlich für crawl4ai."
+  else
+    ok "Python $(python3 --version | cut -d' ' -f2)"
+
+    if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python3" ]; then
+      info "Bestehendes venv gefunden — aktualisiere..."
+      "$VENV_DIR/bin/pip" install --upgrade --quiet shot-scraper crawl4ai 2>/dev/null
+      ok "Python-Pakete aktualisiert"
+    else
+      info "Erstelle venv in $VENV_DIR..."
+      python3 -m venv "$VENV_DIR"
+      "$VENV_DIR/bin/pip" install --upgrade pip --quiet 2>/dev/null
+      "$VENV_DIR/bin/pip" install shot-scraper crawl4ai --quiet 2>/dev/null
+      ok "shot-scraper + crawl4ai installiert"
+    fi
+
+    # Playwright Browser installieren
+    info "Playwright Browser installieren..."
+    "$VENV_DIR/bin/shot-scraper" install 2>/dev/null && ok "Playwright Chromium installiert" || {
+      echo "     ⚠  Playwright-Installation fehlgeschlagen."
+      echo "     Manuell: $VENV_DIR/bin/shot-scraper install"
+      echo "     System-Deps: npx playwright install-deps"
+    }
+
+    # Playwright System-Dependencies (braucht root)
+    if command -v npx &>/dev/null; then
+      info "Playwright System-Dependencies..."
+      npx playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
+        echo "     ⚠  Einige System-Dependencies fehlen evtl."
+        echo "     Manuell: sudo npx playwright install-deps chromium"
+      }
+    fi
+  fi
+fi
+
+# ─── Referenz-Themes (MIT) ────────────────────────────────────────────────────
+
+info "Referenz-Themes (MIT-Bibliothek)..."
+
+mkdir -p "$REFERENCES_DIR/mit"
+
+# MIT-Themes: Bekannte hochwertige Ghost-Themes als Referenz
+MIT_THEMES=(
+  "TryGhost/Casper"
+  "TryGhost/Starter"
+  "TryGhost/Edition"
+  "TryGhost/Solo"
+  "TryGhost/Taste"
+  "TryGhost/Digest"
+  "TryGhost/Bulletin"
+  "TryGhost/Alto"
+  "TryGhost/Dope"
+  "TryGhost/Wave"
+  "TryGhost/London"
+  "TryGhost/Ease"
+  "TryGhost/Ruby"
+  "TryGhost/Headline"
+  "TryGhost/Edge"
+  "TryGhost/Dawn"
+  "TryGhost/Journal"
+  "TryGhost/Massively"
+  "TryGhost/Attila"
+  "TryGhost/Liebling"
+)
+
+CLONED=0
+UPDATED=0
+for theme in "${MIT_THEMES[@]}"; do
+  name=$(basename "$theme")
+  dir="$REFERENCES_DIR/mit/$name"
+  if [ -d "$dir/.git" ]; then
+    git -C "$dir" pull --ff-only --quiet 2>/dev/null && ((UPDATED++)) || true
+  else
+    git clone --depth 1 --quiet "https://github.com/$theme.git" "$dir" 2>/dev/null && ((CLONED++)) || {
+      echo "     ⚠  $theme nicht erreichbar — überspringe"
+    }
+  fi
+done
+ok "MIT-Themes: $CLONED neu, $UPDATED aktualisiert (${#MIT_THEMES[@]} gesamt)"
+
+# Themex-Verzeichnis vorbereiten (wird manuell befüllt via infactory import-references)
+mkdir -p "$REFERENCES_DIR/themex"
+if [ ! -f "$REFERENCES_DIR/themex/.gitkeep" ]; then
+  touch "$REFERENCES_DIR/themex/.gitkeep"
+fi
+
 # ─── Symlink ──────────────────────────────────────────────────────────────────
 
 CLI_BIN="$INSTALL_DIR/infactory-cli/bin/infactory.js"
@@ -111,13 +211,18 @@ ok "infactory → $BIN_LINK"
 echo ""
 echo -e "  ${GREEN}${BOLD}Installation abgeschlossen!${NC}"
 echo ""
+echo "  Installiert:"
+echo "     CLI + Server:  $INSTALL_DIR/"
+[ -d "$VENV_DIR/bin" ] && echo "     Python venv:   $VENV_DIR/"
+echo "     Referenzen:    $REFERENCES_DIR/"
+echo ""
 echo "  Nächster Schritt — im Ghost-Verzeichnis:"
 echo ""
 echo -e "    ${BOLD}cd /var/ghost/mein-blog${NC}"
 echo -e "    ${BOLD}infactory install${NC}"
 echo ""
-echo "  Das richtet den inFactory Server als Companion"
-echo "  für diese Ghost-Instanz ein."
+echo "  Lizenzierte Themes importieren:"
+echo -e "    ${BOLD}infactory import-references --url=https://nextcloud.example.com/s/abc/download${NC}"
 echo ""
 echo -e "  Docs:   ${BLUE}https://studio.xed.dev${NC}"
 echo -e "  GitHub: ${BLUE}https://github.com/XED-dev/Studio${NC}"

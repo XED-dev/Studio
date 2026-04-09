@@ -34,6 +34,7 @@
 
   <h1>inFactory@ /Studio <span style="font-size:0.5em;color:#8b949e;">by</span> <a href="https://xed.dev" style="font-size:0.5em;">XED.dev</a></h1>
   <p class="tagline">AI-Agent-First Ghost Theme Factory &mdash; from preset to production in seconds.</p>
+  <p style="margin:-1rem 0 1.5rem; font-size:0.9rem;"><a href="https://github.com/XED-dev/Studio/blob/main/docs/README.md">Full Documentation</a> &mdash; for DevOps, Designers, Copywriters &amp; Freelancers.</p>
 
   <div class="install-box">
     <h2>Step 1 &mdash; Install as root</h2>
@@ -83,12 +84,14 @@ infactory status</code></pre>
     <div style="flex:1.5; min-width:240px; background:#161b22; border:1px solid #388bfd55; border-radius:8px; padding:16px;">
       <div style="color:#8b949e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">Ghost Host</div>
       <div style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:12px; margin-top:8px;">
-        <div style="color:#58a6ff; font-size:0.85rem; font-weight:600; margin-bottom:10px;">inFactory Server</div>
+        <div style="color:#58a6ff; font-size:0.85rem; font-weight:600; margin-bottom:10px;">inFactory Server v1.1</div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
           <code>Theme Build+Deploy</code>
           <code>Content CRUD</code>
           <code>Image Migration</code>
-          <code>Ghost Restart</code>
+          <code>Visual QA (3 Sensors)</code>
+          <code>Lexical Upgrade</code>
+          <code>Reference Library</code>
         </div>
       </div>
     </div>
@@ -131,18 +134,21 @@ infactory status</code></pre>
     <tr><th>Endpoint</th><th>What it does</th></tr>
     <tr><td><code>POST /api/theme/build</code></td><td>Build preset into Ghost theme ZIP</td></tr>
     <tr><td><code>POST /api/theme/deploy</code></td><td>Build + upload + activate on Ghost</td></tr>
+    <tr><td><code>GET  /api/theme/references</code></td><td>List reference themes on server</td></tr>
     <tr><td><code>POST /api/ghost/pages</code></td><td>Create or update a Ghost page</td></tr>
+    <tr><td><code>POST /api/ghost/pages/upgrade-lexical</code></td><td>Convert HTML to real Lexical nodes</td></tr>
     <tr><td><code>POST /api/ghost/images/migrate</code></td><td>Migrate all images of a page to Ghost</td></tr>
-    <tr><td><code>POST /api/system/restart</code></td><td>Restart Ghost CMS</td></tr>
-    <tr><td><code>GET /api/health</code></td><td>Server + Ghost status</td></tr>
+    <tr><td><code>GET  /api/ghost/images/audit</code></td><td>Find external images across all pages</td></tr>
+    <tr><td><code>POST /api/qa/compare</code></td><td>3-sensor visual QA (pixel + CSS + structure)</td></tr>
+    <tr><td><code>POST /api/qa/batch</code></td><td>Batch QA across multiple pages</td></tr>
+    <tr><td><code>GET  /api/health</code></td><td>Server + Ghost status (no auth)</td></tr>
   </table>
-  <p style="color:#8b949e; font-size:0.85rem;">17 endpoints total. See <a href="https://github.com/XED-dev/Studio/blob/main/infactory-server/README.md">full API reference</a>.</p>
+  <p style="color:#8b949e; font-size:0.85rem;">24 endpoints total. See <a href="https://github.com/XED-dev/Studio/blob/main/docs/README.md">full documentation</a>.</p>
 
   <div class="links">
-    <a href="https://infactory.at">inFactory.at</a>
+    <a href="https://github.com/XED-dev/Studio/blob/main/docs/README.md">Documentation</a>
     <a href="https://github.com/XED-dev/Studio">GitHub</a>
-    <a href="https://infactory.at/wiki">Wiki</a>
-    <a href="https://infactory.at/discussions">Discussions</a>
+    <a href="https://infactory.at">inFactory.at</a>
     <a href="https://github.com/XED-dev/Studio/blob/main/LICENSE">MIT License</a>
     <a href="https://xed.dev">XED.dev</a>
     <a href="https://ghost.org">Ghost CMS</a>
