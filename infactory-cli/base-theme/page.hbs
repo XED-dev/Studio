@@ -31,11 +31,12 @@
     </div>
   </div>
 
-  {{!-- Feature Cards: 3-spaltig auf Holztextur fuer Pages mit #feature-card Tag --}}
-  {{#has tag="#feature-card"}}
+  {{!-- Feature Cards: 3-spaltig auf Holztextur --}}
+  {{!-- Zeigt Pages mit #feiern-highlight Tag (Bier, Saele, Hochzeiten) --}}
+  {{#has tag="#feiern-highlight"}}
   <section class="c-feature-cards" aria-label="Highlights">
     <div class="c-feature-cards__grid">
-      {{#get "pages" filter="tag:hash-feature-card" limit="3" include="tags"}}
+      {{#get "pages" filter="tag:hash-feiern-highlight" limit="3" include="tags"}}
         {{#foreach pages}}
         <article class="c-feature-card">
           {{#if feature_image}}
@@ -60,7 +61,7 @@
   {{/has}}
 
   {{!-- Venue Grid: fuer Pages mit #venue Tag --}}
-  {{#has tag="#feature-card"}}
+  {{#has tag="#feiern-highlight"}}
   <section class="c-venue-grid" aria-label="Raeumlichkeiten">
     <div class="l-wrapper">
       <div class="c-venue-grid__items">
