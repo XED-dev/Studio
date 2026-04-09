@@ -53,6 +53,7 @@ app.use('/api/health', require('./routes/health'));
 // Alle anderen Routes mit Auth
 app.use('/api/theme',  auth, require('./routes/theme'));
 app.use('/api/ghost',  auth, require('./routes/ghost'));
+app.use('/api/qa',     auth, require('./routes/qa'));
 app.use('/api/system', auth, require('./routes/system'));
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ const server = app.listen(config.port, () => {
     .join(', ') || Object.values(config.sites).map(v => v.url).join(', ') || '(keine)';
 
   console.log(`
-  inFactory Server v1.0
+  inFactory Server v1.1
   ${config.domain || 'Factory Floor Controller'}
 
   Port:        ${config.port}

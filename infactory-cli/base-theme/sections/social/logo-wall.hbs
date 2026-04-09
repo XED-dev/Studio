@@ -1,0 +1,19 @@
+{{!--
+  sections/social/logo-wall.hbs — Logo Wall
+  Zeigt Partner-/Kundenlogos als horizontale Leiste.
+  Verwendet eine Page mit dem Tag #logos.
+  Der Content der Page enthält die Logo-Bilder (als Ghost Gallery oder HTML).
+  Presets: agency, saas
+--}}
+<section class="c-logo-wall" aria-label="Partner">
+  <div class="l-wrapper">
+    {{#get "pages" filter="tag:hash-logos" limit="1"}}
+      {{#foreach pages}}
+      {{#if title}}<h2 class="c-logo-wall__heading">{{title}}</h2>{{/if}}
+      <div class="c-logo-wall__grid">
+        {{content}}
+      </div>
+      {{/foreach}}
+    {{/get}}
+  </div>
+</section>

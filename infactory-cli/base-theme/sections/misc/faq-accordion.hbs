@@ -1,0 +1,21 @@
+{{!--
+  sections/misc/faq-accordion.hbs — FAQ Accordion
+  Aufklappbare FAQ-Einträge mit HTML <details>/<summary>.
+  Verwendet Pages mit dem Tag #faq. Title = Frage, Content = Antwort.
+  Presets: saas, blog
+--}}
+<section class="c-faq" aria-label="Häufige Fragen">
+  <div class="l-wrapper">
+    <h2 class="c-faq__heading">Häufig gestellte Fragen</h2>
+    <div class="c-faq__list">
+      {{#get "pages" filter="tag:hash-faq" limit="12" order="published_at asc"}}
+        {{#foreach pages}}
+        <details class="c-faq__item">
+          <summary class="c-faq__question">{{title}}</summary>
+          <div class="c-faq__answer">{{content}}</div>
+        </details>
+        {{/foreach}}
+      {{/get}}
+    </div>
+  </div>
+</section>

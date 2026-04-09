@@ -1,0 +1,26 @@
+{{!--
+  sections/misc/pricing-table.hbs — Pricing Table
+  Zeigt Preis-Tiers als 3-Spalten Cards.
+  Verwendet Pages mit dem Tag #pricing, sortiert nach Publish-Datum.
+  Title = Tier-Name, Excerpt = Preis, Content = Feature-Liste.
+  Presets: saas
+--}}
+<section class="c-pricing" aria-label="Preise">
+  <div class="l-wrapper">
+    <h2 class="c-pricing__heading">Preise</h2>
+    <div class="c-pricing__grid">
+      {{#get "pages" filter="tag:hash-pricing" limit="3" include="tags" order="published_at asc"}}
+        {{#foreach pages}}
+        <article class="c-pricing__card{{#has tag="#featured"}} c-pricing__card--featured{{/has}}">
+          <h3 class="c-pricing__tier">{{title}}</h3>
+          {{#if custom_excerpt}}
+          <div class="c-pricing__price">{{custom_excerpt}}</div>
+          {{/if}}
+          <div class="c-pricing__features">{{content}}</div>
+          <a href="{{url}}" class="c-pricing__cta">Auswählen</a>
+        </article>
+        {{/foreach}}
+      {{/get}}
+    </div>
+  </div>
+</section>

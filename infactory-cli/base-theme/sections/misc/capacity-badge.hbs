@@ -1,0 +1,24 @@
+{{!-- Section: Capacity Badge — Goldener Kreis mit Zahl und Text
+     Verwendet: Page mit Tag #capacity-badge (title = Zahl, custom_excerpt = Beschreibung)
+     Tokens: --color-accent, --color-warm-bg, --font-display, --font-heading --}}
+
+{{#get "pages" filter="tag:hash-capacity-badge" limit="3" include="tags"}}
+  {{#if pages.length}}
+  <section class="c-capacity-badges" aria-label="Kapazitaeten">
+    <div class="l-wrapper">
+      <div class="c-capacity-badges__row">
+        {{#foreach pages}}
+        <div class="c-capacity-badge">
+          <div class="c-capacity-badge__circle">
+            <span class="c-capacity-badge__number">{{title}}</span>
+          </div>
+          {{#if custom_excerpt}}
+          <p class="c-capacity-badge__label">{{custom_excerpt}}</p>
+          {{/if}}
+        </div>
+        {{/foreach}}
+      </div>
+    </div>
+  </section>
+  {{/if}}
+{{/get}}

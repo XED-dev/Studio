@@ -1,0 +1,23 @@
+{{!--
+  sections/hero/hero-centered.hbs — Hero Centered
+  Zentrierter Hero mit Site-Titel, Beschreibung und CTA.
+  Verwendet @site.cover_image als Hintergrund falls vorhanden.
+  Presets: blog, studio
+--}}
+<section class="c-hero c-hero--centered{{#if @site.cover_image}} c-hero--has-bg{{/if}}">
+  {{#if @site.cover_image}}
+  <img class="c-hero__bg" src="{{img_url @site.cover_image size="xl"}}" alt="" loading="eager">
+  <div class="c-hero__overlay"></div>
+  {{/if}}
+  <div class="c-hero__inner l-wrapper">
+    <h1 class="c-hero__title">{{@site.title}}</h1>
+    {{#if @site.description}}
+    <p class="c-hero__description">{{@site.description}}</p>
+    {{/if}}
+    {{#if @site.members_enabled}}
+      {{#unless @member}}
+      <a href="#/portal/signup" class="c-hero__cta" data-portal="signup">Jetzt abonnieren</a>
+      {{/unless}}
+    {{/if}}
+  </div>
+</section>

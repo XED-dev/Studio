@@ -1,0 +1,44 @@
+{{!--
+  sections/posts/posts-grid-2col.hbs — Posts Grid 2-Column
+  Zeigt die neuesten Posts als 2-Spalten Card-Grid.
+  Presets: studio, blog
+--}}
+<section class="c-posts-grid c-posts-grid--2col" aria-label="Aktuelle Beiträge">
+  <div class="l-wrapper">
+    <h2 class="c-posts-grid__heading">Aktuelle Beiträge</h2>
+    <div class="c-posts-grid__grid c-posts-grid__grid--2col">
+      {{#get "posts" limit="4" include="tags,authors"}}
+        {{#foreach posts}}
+        <article class="c-post-card">
+          {{#if feature_image}}
+          <a href="{{url}}" class="c-post-card__image" tabindex="-1" aria-hidden="true">
+            <img
+              srcset="{{img_url feature_image size="s" format="webp"}} 320w,
+                      {{img_url feature_image size="m" format="webp"}} 600w,
+                      {{img_url feature_image size="l" format="webp"}} 960w"
+              sizes="(max-width: 767px) 100vw, 50vw"
+              src="{{img_url feature_image size="m"}}"
+              alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+              loading="lazy"
+            >
+          </a>
+          {{/if}}
+          <div class="c-post-card__body">
+            {{#if primary_tag}}<span class="c-post-card__tag">{{primary_tag.name}}</span>{{/if}}
+            <h3 class="c-post-card__title"><a href="{{url}}">{{title}}</a></h3>
+            {{#if custom_excerpt}}
+            <p class="c-post-card__excerpt">{{custom_excerpt}}</p>
+            {{else}}
+              {{#if excerpt}}<p class="c-post-card__excerpt">{{excerpt}}</p>{{/if}}
+            {{/if}}
+            <footer class="c-post-card__meta">
+              <span class="c-post-card__author">{{authors autolink="false" separator=", "}}</span>
+              <time datetime="{{date format="YYYY-MM-DD"}}">{{date format="D. MMM YYYY"}}</time>
+            </footer>
+          </div>
+        </article>
+        {{/foreach}}
+      {{/get}}
+    </div>
+  </div>
+</section>

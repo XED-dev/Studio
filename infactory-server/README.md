@@ -239,7 +239,7 @@ curl http://localhost:3333/api/theme/sections -H "X-API-Key: $KEY"
 
 ---
 
-## Dependencies
+## Dependencies (aktuell)
 
 ```
 express   ^4.21.0    HTTP Server
@@ -247,7 +247,52 @@ cors      ^2.8.5     Cross-Origin (für Remote-Agents)
 js-yaml   ^4.1.0     Preset YAML Parsing
 ```
 
-Keine weiteren Dependencies. JWT, Multipart-Upload, HTTP-Client — alles mit Node.js Built-ins.
+## FEHLENDE FÄHIGKEITEN (Session 16 erkannt — Session 17 Aufgabe)
+
+Der Server ist aktuell ein **dummes Terminal**. Er kann Build+Deploy, aber:
+
+| Fähigkeit | Status | Was fehlt |
+|---|---|---|
+| **QA-Sensoren** | ✗ FEHLT | odiff, shot-scraper, crawl4ai — alle nur lokal |
+| **Referenz-Themes** | ✗ FEHLT | 43 MIT + 10 Themex liegen nur auf der Workstation |
+| **Lexical-Upgrade** | ✗ FEHLT | html-to-lexical.js nur in CLI |
+| **Image audit/list** | ✗ FEHLT | Nur upload + migrate existieren |
+| **Struktur-Analyse** | ✗ FEHLT | crawl4ai nur lokal |
+| **Python-Tools** | ✗ FEHLT | Kein venv auf dem LXC (shot-scraper, crawl4ai) |
+
+### Fehlende API-Endpunkte
+
+```
+POST /api/qa/compare                  { source, target, width }
+POST /api/qa/batch                    { source_base, target_base, slugs }
+POST /api/qa/structure                { url }
+POST /api/ghost/pages/upgrade-lexical { slug | all, dry_run }
+GET  /api/ghost/images/audit          ?hostname=...
+GET  /api/ghost/images/list
+GET  /api/theme/references            → Referenz-Themes auflisten
+```
+
+### Fehlende Dependencies
+
+```
+odiff-bin             Pixel-Diff (CIE76 Lab ΔE)
+pngjs                 PNG encode/decode
+```
+
+### Fehlende Python-Tools (eigenes venv auf LXC nötig)
+
+```
+shot-scraper          Screenshots + getComputedStyle
+crawl4ai              Strukturierte Content-Extraktion
+playwright            Browser-Engine für shot-scraper
+```
+
+### Design-Fragen (offen)
+
+1. Wo liegen Referenz-Themes auf dem Server? (Im Repo? Separater Fetch? /opt/infactory/references/?)
+2. Wie kommt das Themex-Bundle (Commercial) auf den Server?
+3. Wird QA auf dem Server oder lokal ausgeführt? (Server = autonomer, lokal = einfacher)
+4. `infactory update` muss ALLES aktualisieren — nicht nur cli/ + server/
 
 ---
 

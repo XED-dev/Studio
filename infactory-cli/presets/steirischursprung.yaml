@@ -35,8 +35,15 @@ layout:
   home:
     - hero_slider
     - feature_cards_3col
+    - venue_grid
+    - icon_cards
+    - capacity_badge
+    - video_embed
     - cta_bar
     - news_grid
+  page:
+    - hero_image
+    - title_bar
 
 ghost:
   posts_per_page: 9

@@ -1,0 +1,21 @@
+{{!-- Section: Video Embed — Responsive YouTube/Vimeo Container
+     Verwendet: Page mit Tag #video (erster Post/Page liefert die URL im custom_excerpt)
+     Tokens: --color-dark-bg, --color-text, --font-heading --}}
+
+{{#get "pages" filter="tag:hash-video" limit="1" include="tags"}}
+  {{#if pages.length}}
+  {{#foreach pages}}
+  <section class="c-video-embed" aria-label="Video">
+    <div class="l-wrapper">
+      {{#if title}}
+      <h2 class="c-video-embed__heading">{{title}}</h2>
+      {{/if}}
+      <div class="c-video-embed__container">
+        {{!-- Ghost Lexical rendert YouTube/Vimeo als iframe im HTML --}}
+        {{{html}}}
+      </div>
+    </div>
+  </section>
+  {{/foreach}}
+  {{/if}}
+{{/get}}

@@ -1,5 +1,5 @@
 {
-  "version": "0.5",
+  "version": "1.0",
   "categories": {
     "hero": {
       "icon": "◈",
@@ -37,10 +37,8 @@
       "category": "hero",
       "partial": "sections/hero/hero-centered.hbs",
       "schema": "sections/hero/hero-centered.json",
-      "presets": [
-        "blog",
-        "studio"
-      ]
+      "presets": ["blog", "studio"],
+      "implemented": true
     },
     {
       "id": "hero_split",
@@ -48,10 +46,8 @@
       "category": "hero",
       "partial": "sections/hero/hero-split.hbs",
       "schema": "sections/hero/hero-split.json",
-      "presets": [
-        "saas",
-        "studio"
-      ]
+      "presets": ["saas", "studio"],
+      "implemented": true
     },
     {
       "id": "hero_fullscreen",
@@ -59,9 +55,8 @@
       "category": "hero",
       "partial": "sections/hero/hero-fullscreen.hbs",
       "schema": "sections/hero/hero-fullscreen.json",
-      "presets": [
-        "agency"
-      ]
+      "presets": ["agency"],
+      "implemented": true
     },
     {
       "id": "hero_minimal",
@@ -69,11 +64,7 @@
       "category": "hero",
       "partial": "sections/hero/hero-minimal.hbs",
       "schema": "sections/hero/hero-minimal.json",
-      "presets": [
-        "blog",
-        "studio",
-        "agency"
-      ]
+      "presets": ["blog", "studio", "agency"]
     },
     {
       "id": "hero_video",
@@ -81,217 +72,7 @@
       "category": "hero",
       "partial": "sections/hero/hero-video.hbs",
       "schema": "sections/hero/hero-video.json",
-      "presets": [
-        "agency",
-        "studio"
-      ]
-    },
-    {
-      "id": "posts_grid_3col",
-      "label": "Posts Grid 3-Col",
-      "category": "posts",
-      "partial": "sections/posts/posts-grid-3col.hbs",
-      "schema": "sections/posts/posts-grid-3col.json",
-      "presets": [
-        "agency",
-        "saas",
-        "blog",
-        "studio"
-      ]
-    },
-    {
-      "id": "posts_grid_2col",
-      "label": "Posts Grid 2-Col",
-      "category": "posts",
-      "partial": "sections/posts/posts-grid-2col.hbs",
-      "schema": "sections/posts/posts-grid-2col.json",
-      "presets": [
-        "studio",
-        "blog"
-      ]
-    },
-    {
-      "id": "posts_featured",
-      "label": "Posts Featured",
-      "category": "posts",
-      "partial": "sections/posts/posts-featured.hbs",
-      "schema": "sections/posts/posts-featured.json",
-      "presets": [
-        "blog"
-      ]
-    },
-    {
-      "id": "posts_list",
-      "label": "Posts List",
-      "category": "posts",
-      "partial": "sections/posts/posts-list.hbs",
-      "schema": "sections/posts/posts-list.json",
-      "presets": [
-        "blog",
-        "saas"
-      ]
-    },
-    {
-      "id": "posts_masonry",
-      "label": "Posts Masonry",
-      "category": "posts",
-      "partial": "sections/posts/posts-masonry.hbs",
-      "schema": "sections/posts/posts-masonry.json",
-      "presets": [
-        "studio",
-        "agency"
-      ]
-    },
-    {
-      "id": "features_3col",
-      "label": "Features 3-Col",
-      "category": "features",
-      "partial": "sections/features/features-3col.hbs",
-      "schema": "sections/features/features-3col.json",
-      "presets": [
-        "saas"
-      ]
-    },
-    {
-      "id": "features_split",
-      "label": "Features Split",
-      "category": "features",
-      "partial": "sections/features/features-split.hbs",
-      "schema": "sections/features/features-split.json",
-      "presets": [
-        "saas",
-        "agency"
-      ]
-    },
-    {
-      "id": "features_bento",
-      "label": "Features Bento Grid",
-      "category": "features",
-      "partial": "sections/features/features-bento.hbs",
-      "schema": "sections/features/features-bento.json",
-      "presets": [
-        "saas",
-        "agency"
-      ]
-    },
-    {
-      "id": "cta_newsletter",
-      "label": "CTA Newsletter",
-      "category": "cta",
-      "partial": "sections/cta/cta-newsletter.hbs",
-      "schema": "sections/cta/cta-newsletter.json",
-      "presets": [
-        "saas",
-        "blog"
-      ]
-    },
-    {
-      "id": "cta_bold",
-      "label": "CTA Bold",
-      "category": "cta",
-      "partial": "sections/cta/cta-bold.hbs",
-      "schema": "sections/cta/cta-bold.json",
-      "presets": [
-        "agency"
-      ]
-    },
-    {
-      "id": "cta_minimal",
-      "label": "CTA Minimal",
-      "category": "cta",
-      "partial": "sections/cta/cta-minimal.hbs",
-      "schema": "sections/cta/cta-minimal.json",
-      "presets": [
-        "blog",
-        "studio",
-        "saas"
-      ]
-    },
-    {
-      "id": "cta_split",
-      "label": "CTA Split",
-      "category": "cta",
-      "partial": "sections/cta/cta-split.hbs",
-      "schema": "sections/cta/cta-split.json",
-      "presets": [
-        "saas",
-        "agency"
-      ]
-    },
-    {
-      "id": "social_proof_bar",
-      "label": "Social Proof Bar",
-      "category": "social",
-      "partial": "sections/social/social-proof-bar.hbs",
-      "schema": "sections/social/social-proof-bar.json",
-      "presets": [
-        "saas"
-      ]
-    },
-    {
-      "id": "testimonials_grid",
-      "label": "Testimonials Grid",
-      "category": "social",
-      "partial": "sections/social/testimonials-grid.hbs",
-      "schema": "sections/social/testimonials-grid.json",
-      "presets": [
-        "saas",
-        "agency"
-      ]
-    },
-    {
-      "id": "logo_wall",
-      "label": "Logo Wall",
-      "category": "social",
-      "partial": "sections/social/logo-wall.hbs",
-      "schema": "sections/social/logo-wall.json",
-      "presets": [
-        "agency",
-        "saas"
-      ]
-    },
-    {
-      "id": "about_split",
-      "label": "About Split",
-      "category": "misc",
-      "partial": "sections/misc/about-split.hbs",
-      "schema": "sections/misc/about-split.json",
-      "presets": [
-        "studio",
-        "blog"
-      ]
-    },
-    {
-      "id": "services_list",
-      "label": "Services List",
-      "category": "misc",
-      "partial": "sections/misc/services-list.hbs",
-      "schema": "sections/misc/services-list.json",
-      "presets": [
-        "agency",
-        "studio"
-      ]
-    },
-    {
-      "id": "pricing_table",
-      "label": "Pricing Table",
-      "category": "misc",
-      "partial": "sections/misc/pricing-table.hbs",
-      "schema": "sections/misc/pricing-table.json",
-      "presets": [
-        "saas"
-      ]
-    },
-    {
-      "id": "faq_accordion",
-      "label": "FAQ Accordion",
-      "category": "misc",
-      "partial": "sections/misc/faq-accordion.hbs",
-      "schema": "sections/misc/faq-accordion.json",
-      "presets": [
-        "saas",
-        "blog"
-      ]
+      "presets": ["agency", "studio"]
     },
     {
       "id": "hero_slider",
@@ -299,23 +80,60 @@
       "category": "hero",
       "partial": "sections/hero/hero-slider.hbs",
       "schema": "sections/hero/hero-slider.json",
-      "presets": ["steirischursprung"]
+      "presets": ["steirischursprung"],
+      "implemented": true
     },
     {
-      "id": "feature_cards_3col",
-      "label": "Feature Cards 3-Col",
-      "category": "features",
-      "partial": "sections/features/feature-cards-3col.hbs",
-      "schema": "sections/features/feature-cards-3col.json",
-      "presets": ["steirischursprung", "agency"]
+      "id": "hero_image",
+      "label": "Hero Image",
+      "category": "hero",
+      "partial": "sections/hero/hero-image.hbs",
+      "schema": "sections/hero/hero-image.json",
+      "presets": ["steirischursprung"],
+      "implemented": true
     },
     {
-      "id": "cta_bar",
-      "label": "CTA Bar",
-      "category": "cta",
-      "partial": "sections/cta/cta-bar.hbs",
-      "schema": "sections/cta/cta-bar.json",
-      "presets": ["steirischursprung", "agency"]
+      "id": "posts_grid_3col",
+      "label": "Posts Grid 3-Col",
+      "category": "posts",
+      "partial": "sections/posts/posts-grid-3col.hbs",
+      "schema": "sections/posts/posts-grid-3col.json",
+      "presets": ["agency", "saas", "blog", "studio"],
+      "implemented": true
+    },
+    {
+      "id": "posts_grid_2col",
+      "label": "Posts Grid 2-Col",
+      "category": "posts",
+      "partial": "sections/posts/posts-grid-2col.hbs",
+      "schema": "sections/posts/posts-grid-2col.json",
+      "presets": ["studio", "blog"],
+      "implemented": true
+    },
+    {
+      "id": "posts_featured",
+      "label": "Posts Featured",
+      "category": "posts",
+      "partial": "sections/posts/posts-featured.hbs",
+      "schema": "sections/posts/posts-featured.json",
+      "presets": ["blog"],
+      "implemented": true
+    },
+    {
+      "id": "posts_list",
+      "label": "Posts List",
+      "category": "posts",
+      "partial": "sections/posts/posts-list.hbs",
+      "schema": "sections/posts/posts-list.json",
+      "presets": ["blog", "saas"]
+    },
+    {
+      "id": "posts_masonry",
+      "label": "Posts Masonry",
+      "category": "posts",
+      "partial": "sections/posts/posts-masonry.hbs",
+      "schema": "sections/posts/posts-masonry.json",
+      "presets": ["studio", "agency"]
     },
     {
       "id": "news_grid",
@@ -323,7 +141,194 @@
       "category": "posts",
       "partial": "sections/posts/news-grid.hbs",
       "schema": "sections/posts/news-grid.json",
-      "presets": ["steirischursprung", "blog"]
+      "presets": ["steirischursprung", "blog"],
+      "implemented": true
+    },
+    {
+      "id": "features_3col",
+      "label": "Features 3-Col",
+      "category": "features",
+      "partial": "sections/features/features-3col.hbs",
+      "schema": "sections/features/features-3col.json",
+      "presets": ["saas"],
+      "implemented": true
+    },
+    {
+      "id": "features_split",
+      "label": "Features Split",
+      "category": "features",
+      "partial": "sections/features/features-split.hbs",
+      "schema": "sections/features/features-split.json",
+      "presets": ["saas", "agency"],
+      "implemented": true
+    },
+    {
+      "id": "features_bento",
+      "label": "Features Bento Grid",
+      "category": "features",
+      "partial": "sections/features/features-bento.hbs",
+      "schema": "sections/features/features-bento.json",
+      "presets": ["saas", "agency"]
+    },
+    {
+      "id": "feature_cards_3col",
+      "label": "Feature Cards 3-Col",
+      "category": "features",
+      "partial": "sections/features/feature-cards-3col.hbs",
+      "schema": "sections/features/feature-cards-3col.json",
+      "presets": ["steirischursprung", "agency"],
+      "implemented": true
+    },
+    {
+      "id": "icon_cards",
+      "label": "Icon Cards",
+      "category": "features",
+      "partial": "sections/features/icon-cards.hbs",
+      "schema": "sections/features/icon-cards.json",
+      "presets": ["steirischursprung"],
+      "implemented": true
+    },
+    {
+      "id": "cta_newsletter",
+      "label": "CTA Newsletter",
+      "category": "cta",
+      "partial": "sections/cta/cta-newsletter.hbs",
+      "schema": "sections/cta/cta-newsletter.json",
+      "presets": ["saas", "blog"],
+      "implemented": true
+    },
+    {
+      "id": "cta_bold",
+      "label": "CTA Bold",
+      "category": "cta",
+      "partial": "sections/cta/cta-bold.hbs",
+      "schema": "sections/cta/cta-bold.json",
+      "presets": ["agency"],
+      "implemented": true
+    },
+    {
+      "id": "cta_minimal",
+      "label": "CTA Minimal",
+      "category": "cta",
+      "partial": "sections/cta/cta-minimal.hbs",
+      "schema": "sections/cta/cta-minimal.json",
+      "presets": ["blog", "studio", "saas"]
+    },
+    {
+      "id": "cta_split",
+      "label": "CTA Split",
+      "category": "cta",
+      "partial": "sections/cta/cta-split.hbs",
+      "schema": "sections/cta/cta-split.json",
+      "presets": ["saas", "agency"]
+    },
+    {
+      "id": "cta_bar",
+      "label": "CTA Bar",
+      "category": "cta",
+      "partial": "sections/cta/cta-bar.hbs",
+      "schema": "sections/cta/cta-bar.json",
+      "presets": ["steirischursprung", "agency"],
+      "implemented": true
+    },
+    {
+      "id": "social_proof_bar",
+      "label": "Social Proof Bar",
+      "category": "social",
+      "partial": "sections/social/social-proof-bar.hbs",
+      "schema": "sections/social/social-proof-bar.json",
+      "presets": ["saas"],
+      "implemented": true
+    },
+    {
+      "id": "testimonials_grid",
+      "label": "Testimonials Grid",
+      "category": "social",
+      "partial": "sections/social/testimonials-grid.hbs",
+      "schema": "sections/social/testimonials-grid.json",
+      "presets": ["saas", "agency"],
+      "implemented": true
+    },
+    {
+      "id": "logo_wall",
+      "label": "Logo Wall",
+      "category": "social",
+      "partial": "sections/social/logo-wall.hbs",
+      "schema": "sections/social/logo-wall.json",
+      "presets": ["agency", "saas"],
+      "implemented": true
+    },
+    {
+      "id": "about_split",
+      "label": "About Split",
+      "category": "misc",
+      "partial": "sections/misc/about-split.hbs",
+      "schema": "sections/misc/about-split.json",
+      "presets": ["studio", "blog"],
+      "implemented": true
+    },
+    {
+      "id": "services_list",
+      "label": "Services List",
+      "category": "misc",
+      "partial": "sections/misc/services-list.hbs",
+      "schema": "sections/misc/services-list.json",
+      "presets": ["agency", "studio"],
+      "implemented": true
+    },
+    {
+      "id": "pricing_table",
+      "label": "Pricing Table",
+      "category": "misc",
+      "partial": "sections/misc/pricing-table.hbs",
+      "schema": "sections/misc/pricing-table.json",
+      "presets": ["saas"],
+      "implemented": true
+    },
+    {
+      "id": "faq_accordion",
+      "label": "FAQ Accordion",
+      "category": "misc",
+      "partial": "sections/misc/faq-accordion.hbs",
+      "schema": "sections/misc/faq-accordion.json",
+      "presets": ["saas", "blog"],
+      "implemented": true
+    },
+    {
+      "id": "title_bar",
+      "label": "Title Bar",
+      "category": "misc",
+      "partial": "sections/misc/title-bar.hbs",
+      "schema": "sections/misc/title-bar.json",
+      "presets": ["steirischursprung"],
+      "implemented": true
+    },
+    {
+      "id": "venue_grid",
+      "label": "Venue Grid",
+      "category": "misc",
+      "partial": "sections/misc/venue-grid.hbs",
+      "schema": "sections/misc/venue-grid.json",
+      "presets": ["steirischursprung"],
+      "implemented": true
+    },
+    {
+      "id": "video_embed",
+      "label": "Video Embed",
+      "category": "misc",
+      "partial": "sections/misc/video-embed.hbs",
+      "schema": "sections/misc/video-embed.json",
+      "presets": ["steirischursprung"],
+      "implemented": true
+    },
+    {
+      "id": "capacity_badge",
+      "label": "Capacity Badge",
+      "category": "misc",
+      "partial": "sections/misc/capacity-badge.hbs",
+      "schema": "sections/misc/capacity-badge.json",
+      "presets": ["steirischursprung"],
+      "implemented": true
     }
   ]
 }

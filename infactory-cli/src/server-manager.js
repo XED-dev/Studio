@@ -163,8 +163,20 @@ async function install(opts = {}) {
 
   // 7. infactory.json schreiben
   const domain = ghost.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+  // Prüfe ob globale Installation (install.sh) venv + references hat
+  const globalVenv = '/opt/infactory/venv';
+  const globalRefs = '/opt/infactory/references';
+  const hasVenv = fs.existsSync(path.join(globalVenv, 'bin', 'python3'));
+  const hasRefs = fs.existsSync(globalRefs);
+
+  if (hasVenv) info(`  Python venv: ${globalVenv} ✔`);
+  else info(`  Python venv: NICHT gefunden (QA deaktiviert)`);
+  if (hasRefs) info(`  Referenzen:  ${globalRefs} ✔`);
+  else info(`  Referenzen:  NICHT gefunden`);
+
   const config = {
-    version: '1.0.0',
+    version: '1.1.0',
     ghost_url: `http://localhost:${ghost.port}`,
     ghost_port: ghost.port,
     infactory_port: infactoryPort,
@@ -173,6 +185,8 @@ async function install(opts = {}) {
     auto_sleep_minutes: 360,
     api_key: apiKey,
     ghost_admin_key: '',  // Muss manuell eingetragen werden
+    venv_path: hasVenv ? globalVenv : '',
+    references_path: hasRefs ? globalRefs : '',
     installed_at: new Date().toISOString(),
   };
 

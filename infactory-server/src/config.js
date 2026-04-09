@@ -42,6 +42,8 @@ if (configPath && fs.existsSync(configPath)) {
     },
 
     imageArchivePath: raw.image_archive_path || '',
+    venvPath:         raw.venv_path || '/opt/infactory/venv',
+    referencesPath:   raw.references_path || '/opt/infactory/references',
     ghostDir:         ghostDir,
     configPath:       configPath,
     domain:           raw.domain || '',
@@ -79,6 +81,8 @@ if (configPath && fs.existsSync(configPath)) {
     autoSleepMinutes: parseInt(process.env.AUTO_SLEEP_MINUTES || '360', 10),
     sites:    {},
     imageArchivePath: process.env.IMAGE_ARCHIVE_PATH || '',
+    venvPath:         process.env.INFACTORY_VENV_PATH || '/opt/infactory/venv',
+    referencesPath:   process.env.INFACTORY_REFERENCES_PATH || '/opt/infactory/references',
     ghostDir: '',
     configPath: '',
     domain: '',

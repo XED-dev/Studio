@@ -1,0 +1,29 @@
+{{!--
+  sections/misc/services-list.hbs — Services List
+  Dienste/Leistungen als vertikale Liste mit Icons.
+  Verwendet Pages mit dem Tag #service.
+  Feature-Image = Icon, Title = Dienst, Excerpt = Beschreibung.
+  Presets: agency, studio
+--}}
+<section class="c-services" aria-label="Leistungen">
+  <div class="l-wrapper">
+    <h2 class="c-services__heading">Unsere Leistungen</h2>
+    <div class="c-services__list">
+      {{#get "pages" filter="tag:hash-service" limit="6" include="tags" order="published_at asc"}}
+        {{#foreach pages}}
+        <article class="c-services__item">
+          {{#if feature_image}}
+          <div class="c-services__icon">
+            <img src="{{img_url feature_image size="xs"}}" alt="" loading="lazy" width="48" height="48">
+          </div>
+          {{/if}}
+          <div class="c-services__body">
+            <h3 class="c-services__title">{{title}}</h3>
+            {{#if custom_excerpt}}<p class="c-services__text">{{custom_excerpt}}</p>{{/if}}
+          </div>
+        </article>
+        {{/foreach}}
+      {{/get}}
+    </div>
+  </div>
+</section>

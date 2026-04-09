@@ -1,0 +1,18 @@
+{{!--
+  sections/cta/cta-bold.hbs — CTA Bold
+  Auffälliger Call-to-Action mit farbigem Hintergrund.
+  Presets: agency
+--}}
+<section class="c-cta-bold" aria-label="Call to Action">
+  <div class="l-wrapper">
+    <div class="c-cta-bold__inner">
+      <h2 class="c-cta-bold__title">Projekt starten?</h2>
+      <p class="c-cta-bold__text">Lass uns gemeinsam etwas Großartiges bauen.</p>
+      {{#if @site.members_enabled}}
+        <a href="#/portal/signup" class="c-cta-bold__btn" data-portal="signup">Jetzt loslegen</a>
+      {{else}}
+        <a href="/kontakt/" class="c-cta-bold__btn">Kontakt aufnehmen</a>
+      {{/if}}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,27 @@
+{{!--
+  sections/features/features-3col.hbs — Features 3-Column
+  Zeigt 3 Pages mit dem Tag #feature als Icon-Cards.
+  Content der Page wird als Beschreibung verwendet.
+  Presets: saas
+--}}
+<section class="c-features" aria-label="Features">
+  <div class="l-wrapper">
+    <div class="c-features__grid">
+      {{#get "pages" filter="tag:hash-feature" limit="3" include="tags"}}
+        {{#foreach pages}}
+        <article class="c-features__item">
+          {{#if feature_image}}
+          <div class="c-features__icon">
+            <img src="{{img_url feature_image size="s"}}" alt="" loading="lazy" width="64" height="64">
+          </div>
+          {{/if}}
+          <h3 class="c-features__title">{{title}}</h3>
+          {{#if custom_excerpt}}
+          <p class="c-features__text">{{custom_excerpt}}</p>
+          {{/if}}
+        </article>
+        {{/foreach}}
+      {{/get}}
+    </div>
+  </div>
+</section>

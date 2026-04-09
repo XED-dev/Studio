@@ -19,8 +19,8 @@ Von `infactory new` bis `infactory deploy` — ohne einmal den Ghost Admin zu ö
 
 **Lies `BETHEME.md`** bevor du am SteirischUrsprung-Projekt arbeitest!
 Diese Datei enthält alle Design-Tokens, Seitenstrukturen, Measurement-Regeln
-und Fallen aus 12 Sessions Erfahrung. **Offene Punkte für die nächste Session
-stehen am Ende der BETHEME.md** (Abschnitt "OFFENE PUNKTE für Session 13").
+und Fallen aus 16 Sessions Erfahrung. **Offene Punkte für die nächste Session
+stehen am Ende der BETHEME.md** (Abschnitt "OFFENE PUNKTE für Session 17").
 
 ### Ghost 6.x — Kritische Regeln
 

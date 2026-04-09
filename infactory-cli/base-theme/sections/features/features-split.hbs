@@ -1,0 +1,34 @@
+{{!--
+  sections/features/features-split.hbs — Features Split
+  Abwechselndes Layout: Bild links/Text rechts, dann umgekehrt.
+  Zeigt Pages mit Tag #feature-split.
+  Presets: saas, agency
+--}}
+<section class="c-features-split" aria-label="Features">
+  <div class="l-wrapper">
+    {{#get "pages" filter="tag:hash-feature-split" limit="3" include="tags" order="published_at asc"}}
+      {{#foreach pages}}
+      <div class="c-features-split__row{{#match @odd}} c-features-split__row--reverse{{/match}}">
+        {{#if feature_image}}
+        <div class="c-features-split__media">
+          <img
+            srcset="{{img_url feature_image size="s" format="webp"}} 320w,
+                    {{img_url feature_image size="m" format="webp"}} 600w,
+                    {{img_url feature_image size="l" format="webp"}} 960w"
+            sizes="(max-width: 767px) 100vw, 50vw"
+            src="{{img_url feature_image size="m"}}"
+            alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+            loading="lazy"
+          >
+        </div>
+        {{/if}}
+        <div class="c-features-split__content">
+          <h3 class="c-features-split__title">{{title}}</h3>
+          {{#if custom_excerpt}}<p class="c-features-split__text">{{custom_excerpt}}</p>{{/if}}
+          <a href="{{url}}" class="c-features-split__link">Mehr erfahren</a>
+        </div>
+      </div>
+      {{/foreach}}
+    {{/get}}
+  </div>
+</section>

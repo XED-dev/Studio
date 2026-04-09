@@ -172,4 +172,94 @@ router.get('/sections', (req, res) => {
   }
 });
 
+// ─── References ──────────────────────────────────────────────────────────
+
+/**
+ * GET /api/theme/references
+ * Listet alle verfügbaren Referenz-Themes auf dem Server.
+ */
+router.get('/references', (req, res) => {
+  const refsPath = config.referencesPath;
+  if (!refsPath || !fs.existsSync(refsPath)) {
+    return res.json({
+      available: false,
+      path: refsPath || '(nicht konfiguriert)',
+      hint: 'install.sh erneut ausführen oder references_path in infactory.json setzen',
+      mit: [], themex: [],
+    });
+  }
+
+  const result = { available: true, path: refsPath, mit: [], themex: [] };
+
+  // MIT-Themes
+  const mitDir = path.join(refsPath, 'mit');
+  if (fs.existsSync(mitDir)) {
+    for (const name of fs.readdirSync(mitDir).sort()) {
+      const dir = path.join(mitDir, name);
+      if (!fs.statSync(dir).isDirectory()) continue;
+
+      const entry = { name, type: 'mit' };
+
+      // package.json lesen für Metadaten
+      const pkgPath = path.join(dir, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+          entry.description = pkg.description || '';
+          entry.version = pkg.version || '';
+          entry.author = (typeof pkg.author === 'string') ? pkg.author : (pkg.author?.name || '');
+        } catch {}
+      }
+
+      // Partials/Templates zählen
+      const partialsDir = path.join(dir, 'partials');
+      if (fs.existsSync(partialsDir)) {
+        entry.partials = fs.readdirSync(partialsDir).filter(f => f.endsWith('.hbs')).length;
+      }
+
+      result.mit.push(entry);
+    }
+  }
+
+  // Themex (lizenziert)
+  const themexDir = path.join(refsPath, 'themex');
+  if (fs.existsSync(themexDir)) {
+    for (const name of fs.readdirSync(themexDir).sort()) {
+      if (name === '.gitkeep') continue;
+      const dir = path.join(themexDir, name);
+      if (!fs.statSync(dir).isDirectory()) continue;
+
+      const entry = { name, type: 'themex' };
+
+      const pkgPath = path.join(dir, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+          entry.description = pkg.description || '';
+          entry.version = pkg.version || '';
+        } catch {}
+      }
+
+      const partialsDir = path.join(dir, 'partials');
+      if (fs.existsSync(partialsDir)) {
+        entry.partials = fs.readdirSync(partialsDir).filter(f => f.endsWith('.hbs')).length;
+      }
+
+      // Components zählen (Themex-typisch)
+      const componentsDir = path.join(dir, 'partials', 'components');
+      if (fs.existsSync(componentsDir)) {
+        entry.components = fs.readdirSync(componentsDir).filter(f => f.endsWith('.hbs')).length;
+      }
+
+      result.themex.push(entry);
+    }
+  }
+
+  result.totalMit = result.mit.length;
+  result.totalThemex = result.themex.length;
+  result.total = result.totalMit + result.totalThemex;
+
+  res.json(result);
+});
+
 module.exports = router;

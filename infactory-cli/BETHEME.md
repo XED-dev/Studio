@@ -289,45 +289,211 @@ Content aus `arv.steirischursprung.at` (statisches Wayback-Archiv) extrahiert:
 
 ---
 
-## OFFENE PUNKTE für Session 14
+## Session 14 — Erledigt (2026-04-08/09)
 
-### 1. Bilder nach Ghost migrieren (HÖCHSTE PRIORITÄT)
+### ✔ WHITEPAPER.md — Tiefenanalyse + Roadmap
 
-Aktuell laden ALLE Bilder von `arv.steirischursprung.at`. Wenn die arv-Domain offline geht,
-brechen alle Bilder (Feature-Images + Inline-Content).
+- IST-Analyse: 4 von 28 Sections haben echte .hbs Templates
+- Wettbewerbsanalyse: kein Wettbewerber bedient AI Agents als primäre Nutzer
+- 7-Phasen-Roadmap für die Weiterentwicklung
+- AI Agent Briefing (technische Referenz)
 
-**Umsetzung:**
-1. Bilder von arv herunterladen (oder direkt vom lokalen Archiv `dev/bin/XED-Restore/archive/`)
-2. Via Ghost Admin API hochladen (`POST /ghost/api/admin/images/upload/`)
-3. URLs in allen Pages aktualisieren (Page löschen + neu erstellen mit neuen URLs, weil `mobiledoc`-Updates bei bestehenden Pages ignoriert werden)
+### ✔ inFactory Server v1.0 — Factory Floor Controller
 
-**Betroffene Bilder:** Feature-Images (20 Pages) + Inline-Content-Bilder (geschätzt 50+)
+- Express REST API (17 Endpunkte) auf dem Ghost-Host (025-CBU-5025)
+- Ghost Content CRUD, Image Upload/Migration, Theme Build+Deploy, Ghost Restart
+- Architektur: Pro Ghost-Instanz, Port = Ghost-Port + 1000
+- Auto-Sleep nach 6h Inaktivität, systemd Restart weckt bei Anfrage
+- Minimale Dependencies: express, cors, js-yaml (JWT + Multipart = Node Built-ins)
 
-### 2. Wellness-Seite erstellen
+### ✔ infactory CLI — Server Management Befehle
 
-`/wellness/` fehlt im Wayback-Archiv. Content muss entweder:
-- Von der Live-arv-Seite extrahiert werden (falls die URL existiert)
-- Oder aus dem Kontext der Seminar-Seite abgeleitet werden (dort wird Wellness erwähnt)
+- `infactory install` — erkennt Ghost (config.production.json), erstellt .infactory/, systemd
+- `infactory start/stop/restart/status/update` — Server Lifecycle
+- `infactory ghost restart` — Ghost CMS neustarten
+- Zwei-User-Modell: root (curl install.sh) vs Ghost-User (infactory install)
 
-### 3. CSS-Feinarbeit
+### ✔ Distribution + Landing Page
 
-- Section-Dekorationen (sep-green Wellentrenner oben/unten, Holzrand-Trenner)
-- Goldene Capacity-Badges (`#ba8d1a`, 105px Kreis, `::after` 2px Ring)
-- Venue-Grid Cards mit Preis-Badges
-- CTA-Bar mit rundem Angebote-Button
-- Title-Bar mit Textur-Hintergrund (`header-bg.jpg`)
+- GitHub: https://github.com/XED-dev/Studio (Public, MIT)
+- Landing Page: https://studio.xed.dev (GitHub Pages, HTTPS)
+- One-Liner: `curl -fsSL https://studio.xed.dev/install.sh | bash`
+- inFactory.at → studio.xed.dev, Wiki + Discussions auf GitHub
 
-### 4. Ursprung Dorf Seite
+---
 
-Im Menü unter Hotel verlinkt (`/ursprung-dorf/`), aber weder im Archiv vorhanden noch
-als Ghost Page erstellt. Content recherchieren oder Seite aus Menü entfernen.
+## Session 15 — Erledigt (2026-04-09)
 
-### 5. Mobile-Optimierung verifizieren
+### ✔ Section Library v1.0 — 21 echte Templates
 
-- Hamburger-Menü mit allen Dropdowns testen
-- Topbar wird bei <1100px ausgeblendet — prüfen ob das gewünscht ist
-- Logo-Größe im Mobile-Modus (aktuell 60px)
-- Footer 3-Spalten → 1-Spalte unter 768px
+Section Library von 4 auf 21 implementierte .hbs Templates erweitert.
+Alle 5 Presets (blog, studio, agency, saas, steirischursprung) bauen ohne Placeholder.
+
+**Neue Sections (17 hinzugefügt):**
+- Hero: centered, split, fullscreen
+- Features: 3col, split
+- Posts: grid-3col, grid-2col, featured
+- CTA: newsletter (Ghost Members), bold
+- Social: testimonials-grid, logo-wall, social-proof-bar
+- Misc: pricing-table, faq-accordion, about-split, services-list
+
+**Architektur-Pattern (gelernt aus Themex-Bundle + Ghost Source Theme):**
+- Ghost `{{#get}}` API + Internal Tags (`#feature`, `#testimonial`, `#pricing`, etc.)
+- Content kommt aus Ghost Pages/Posts, nicht aus Templates
+- BEM-artiges CSS: `.c-{section}__{element}--{modifier}`
+- Alle Werte aus CSS Custom Properties (Tokens)
+
+### ✔ Theme-Referenzbibliothek — 25 MIT + 10 Themex
+
+**25 MIT-lizenzierte Themes** als Referenz in `dev/upstream/` geklont:
+- TryGhost Official: Source, Casper, Starter, Editorial, Massively, Roon + Monorepo (16 Themes)
+- Community: Liebling, Attila, Fizzy
+
+**Themex-Bundle** (10 Premium-Themes, $349 Lifetime) in `dev/upstream/themes/braun-licence/`:
+- 730 .hbs Dateien, 21 Section-Types
+- Commercial License: Nur als Clean-Room-Architektur-Referenz, Code nicht kopieren
+
+### Erfahrungen aus Session 15
+
+1. **Kein MIT-Theme hat modulare Section-Partials** — das ist ein Premium-Feature.
+2. **Themex-Pattern:** `{{#get "pages" filter="tag:hash-section-hero"}}` + `{{#has tag="..."}}` Dispatch.
+3. **Scope (Priority Vision) nicht nötig** — Themex-Bundle hat 21 Section-Types, ausreichend.
+4. **registry.json Version-Bump** 0.5 → 1.0, `"implemented": true` Flag für echte Templates.
+
+---
+
+## Session 16 — Erledigt (2026-04-09)
+
+### ✔ Lexical Content-Converter — Monoblock → Native Nodes
+
+`ghost-api.js:htmlToLexical()` komplett neu gebaut als `src/html-to-lexical.js`:
+- `<p>` → `paragraph` Node (mit inline formatting: bold, italic, underline, links)
+- `<h1>`-`<h6>` → `heading` Node
+- `<img>` / `<figure>` → `image` Node (Ghost-natives srcset/responsive)
+- `<hr>` → `horizontalrule` Node
+- `<ul>`/`<ol>` → `list` Node
+- Komplexe BeTheme-Blöcke → `html` Card (Fallback)
+- Truncated HTML graceful handling (unclosed blocks)
+
+**Alle 19 Content-Pages auf dev aktualisiert** (1 test-content übersprungen):
+- Hotel: 1 → 19 Nodes (6 heading, 7 paragraph, 6 image)
+- Feiern & Genießen: 1 → 25 Nodes (10 heading, 7 paragraph, 8 image)
+- Brauerei: 1 → 20 Nodes (8 heading, 8 paragraph, 4 image)
+- Datenschutz: 1 → 23 Nodes (7 heading, 10 paragraph, 6 hr)
+- Ghost Editor kann Content jetzt nativ bearbeiten
+
+### ✔ Bilder-Migration — 31 Bilder arv → Ghost
+
+**31 einzigartige Bilder** von `arv.steirischursprung.at` nach Ghost migriert (11 Feature + 20 Content).
+Alle liegen jetzt unter `dev.steirischursprung.at/content/images/2026/04/`.
+Ghost-natives srcset/responsive Handling aktiv. 0 externe URLs übrig.
+
+### ✔ infactory images — CLI-Befehl für Image Management
+
+Neues Modul `src/images.js` + CLI-Integration in `bin/infactory.js`:
+```bash
+infactory images audit   --hostname=<host> [--from=<archiv>]   # Externe Bilder finden
+infactory images migrate --hostname=<host> --from=<archiv>     # Upload + URL-Replace
+infactory images list    [--verbose]                           # Inventar aller Bilder
+infactory images upload  <datei> [...]                         # Einzelne Bilder hochladen
+```
+Kein rsync, kein SSH, kein SysOps — die Fabrik handelt ihre eigenen Assets via HTTPS.
+
+### ✔ infactory qa — 3-Sensor Visual QA (Die Augen der Fabrik)
+
+```bash
+infactory qa compare --source=https://arv.steirischursprung.at/<slug>/ --target=https://dev.steirischursprung.at/<slug>/
+infactory qa batch --source-base=https://arv.steirischursprung.at --target-base=https://dev.steirischursprung.at --slugs=hotel,brauerei,feiern-geniessen
+```
+
+| Sensor | Tool | Gewicht | Misst |
+|---|---|---|---|
+| Pixel | **odiff** (CIE76 Lab ΔE) | 35% | Perzeptuelle Farbdistanz, Layout-Diff |
+| CSS | **shot-scraper** + getComputedStyle | 25% | 12 Elemente × 3-5 Properties |
+| Struktur | **crawl4ai** + shot-scraper JS | 40% | Sections, Grids, Content, Media |
+
+**QA-Baseline (feiern-geniessen): GESAMT 44%** (Struktur 57%, Pixel 40%, CSS 30%)
+**Ziel: 99%**
+
+### Erfahrungen aus Session 16
+
+1. **Ghost Lexical Format:** 22 Card-Types in `node-renderers/`, plus Builtins (paragraph, heading, list, text, link, linebreak). Root direction muss `"ltr"` sein (nicht `null`).
+2. **Text format flags** sind bitwise OR: 1=bold, 2=italic, 4=strikethrough, 8=underline.
+3. **Image Nodes** werden von Ghost automatisch mit `kg-card kg-image-card` Klasse + srcset gerendert.
+4. **Headings** bekommen automatisch `id="slug"` für Anchor-Links.
+5. **Truncated HTML:** Datenschutz-Page war abgeschnitten (kein schließendes `</div>`). Parser muss unclosed blocks am EOF behandeln.
+6. **`wso-privacy` Div** ist ein einfacher Wrapper (kein komplexer BeTheme-Block).
+7. **Ghost Admin API `?formats=lexical,html`** liefert beide Formate.
+8. **Struktur ist Hauptblocker, nicht CSS.** Flacher Content (h2, p, img...) vs strukturierte Sections (Hero, 3-Col Cards, Grids). CSS-Fixes bringen max ~60%, Sections-Arbeit ist der Weg zu 99%.
+9. **odiff > pixelmatch** für Web-Screenshots: CIE76 Lab ΔE (perzeptuell) > YIQ (TV), Layout-Diff-Erkennung, weniger False Positives.
+10. **crawl4ai > shot-scraper** für Content-Extraktion: Schema-basierte Extraktion, Markdown-Conversion, Media-Inventar. shot-scraper kann nur JS.
+11. **crawl4ai stdout-Verschmutzung:** `[INIT]`, `[FETCH]`, `[SCRAPE]` auf stdout. Lösung: `###JSON_START###` Marker im Python-Script.
+
+---
+
+## OFFENE PUNKTE für Session 17
+
+### 1. Content-Struktur (HÖCHSTE PRIORITÄT — der Weg zu 99%)
+
+Das Kernproblem: Ghost-Pages haben flachen Content, Original hat strukturierte Sections.
+- Source hat 26 Sections, Target hat 12
+- Source hat Grid-Layouts (3-Spalten Feature Cards), Target hat keine
+- Seitenhöhe +35% weil alles untereinander statt nebeneinander
+- Content-Länge: 16.332 vs 7.571 Zeichen — Content beim Import verloren
+
+**Tiefe Analyse nötig:**
+- Wie kann die Section Library die BeTheme-Strukturen abbilden?
+- Wie wird flaches Lexical JSON in Section-basiertes Ghost Content umgewandelt?
+- Welche Section-Types brauchen wir konkret für feiern-geniessen?
+  - Hero Image + Overlay Text
+  - 3-Spalten Feature Cards mit Tier-Illustrationen
+  - Venue Grid (6 Säle mit Bildern + Preisen)
+  - CTA-Bar
+
+### 2. CSS-Kalibrierung (erst wenn Struktur > 80%)
+
+| Property | Original | Ghost | Fix |
+|---|---|---|---|
+| H1 fontSize | 63px | 40px | `font-size: 63px` |
+| H2 fontSize | 45px | 28.8px | `font-size: 45px` |
+| H3 fontSize | 30px | 24px | `font-size: 30px` |
+| Heading fontWeight | 400 | 600 | `font-weight: 400` |
+| Body/P color | `#2c2930` | `#554030` | Token stimmt, wird überschrieben |
+| P lineHeight | 25px (1.39) | 29.92px (1.7) | `line-height: 1.4` |
+
+### 3. SERVER-AUTONOMIE (KRITISCH — dev.steirischursprung.at ist UNVERÄNDERT)
+
+Session 16 hat Werkzeuge gebaut (QA, Images, Lexical), aber ALLES steckt NUR in der
+lokalen CLI. Der inFactory Server (025-CBU-5025:3369) hat NICHTS davon.
+`infactory update` holt nur cli/ + server/ von GitHub — KEINE Referenz-Themes, KEINE Tools.
+
+**Server braucht:**
+- QA-Endpunkte: POST /api/qa/compare, /api/qa/batch, /api/qa/structure
+- Lexical-Upgrade: POST /api/ghost/pages/upgrade-lexical
+- Image audit+list Endpunkte
+- Python-Tools auf LXC (shot-scraper, crawl4ai, Playwright venv)
+- Referenz-Themes zugänglich (Design-Entscheidung: im Repo? Separater Fetch?)
+- odiff-bin + pngjs in server/package.json
+
+**Design-Prinzip:** Der AI Agent ist der ARCHITEKT, der Server ist die FABRIK.
+Die Fabrik muss alle Werkzeuge und Materialien SELBST haben.
+
+### 4. Plugin-System / Add-on Architektur
+
+Plugin-System bei dem man bei Bedarf Funktionalitäten wie
+"XED /Restore" oder "Content-Extraktion" (Quelle-A vs Ziel-B) einbinden kann.
+crawl4ai ist die Engine dafür.
+
+### 5. Fehlende Seiten
+
+- Wellness (`/wellness/`) — nicht im Archiv
+- Ursprung Dorf (`/ursprung-dorf/`) — nicht im Archiv
+
+### 6. Mobile-Optimierung
+
+- Hamburger-Menü mit Dropdowns testen
+- Logo-Größe Mobile (60px)
+- Footer responsive
 
 ---
 
@@ -484,3 +650,6 @@ Vollständige Session-Chronologie (Sessions 1-11) und detaillierte CSS-Fix-Tabel
 
 *Erstellt: 2026-04-05 — aus 12 Sessions Erfahrung extrahiert*
 *Aktualisiert: 2026-04-06 — Session 13 (Nav, Footer, 15 neue Pages)*
+*Aktualisiert: 2026-04-09 — Session 14 (WHITEPAPER, inFactory Server, studio.xed.dev)*
+*Aktualisiert: 2026-04-09 — Session 15 (Section Library v1.0, 21/28 Templates, Theme-Bibliothek)*
+*Aktualisiert: 2026-04-09 — Session 16 (Lexical Converter, 31 Bilder migriert, infactory images CLI)*

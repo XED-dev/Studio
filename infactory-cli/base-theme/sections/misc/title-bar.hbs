@@ -1,0 +1,12 @@
+{{!-- Section: Title Bar — Beige Textur-Banner mit H1 + optionalem Subtitle
+     Verwendet: Seiten-Titel der aktuellen Page
+     Tokens: --color-warm-bg, --color-primary, --font-heading --}}
+
+<section class="c-title-bar" aria-label="Seitentitel">
+  <div class="l-wrapper">
+    <h1 class="c-title-bar__heading">{{#if title}}{{title}}{{else}}{{@site.title}}{{/if}}</h1>
+    {{#if custom_excerpt}}
+    <p class="c-title-bar__subtitle">{{custom_excerpt}}</p>
+    {{/if}}
+  </div>
+</section>

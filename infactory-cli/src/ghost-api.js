@@ -10,6 +10,7 @@
 const https = require('https');
 const http  = require('http');
 const { generateJWT } = require('./deploy');
+const { htmlToLexical } = require('./html-to-lexical');
 
 /**
  * Ghost Admin API Request
@@ -163,29 +164,8 @@ async function createPost(baseUrl, adminKey, postData) {
   return result.posts[0];
 }
 
-/**
- * Konvertiert HTML in Ghost Lexical-Format (HTML-Card).
- * Ghost 6.x nutzt Lexical als primäres Content-Format.
- */
-function htmlToLexical(html) {
-  if (!html) return {};
-  const lexical = JSON.stringify({
-    root: {
-      children: [
-        {
-          type: 'html',
-          version: 1,
-          html: html.trim(),
-        }
-      ],
-      direction: null,
-      format: '',
-      indent: 0,
-      type: 'root',
-      version: 1,
-    }
-  });
-  return { lexical };
-}
+// htmlToLexical() imported from ./html-to-lexical.js
+// Converts HTML to proper Lexical nodes (paragraph, heading, image, list, etc.)
+// instead of the old Monoblock-Hack (entire HTML in one html-Card).
 
 module.exports = { ghostRequest, createPage, createPost, htmlToLexical };

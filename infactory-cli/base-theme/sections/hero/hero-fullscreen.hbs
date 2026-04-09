@@ -1,0 +1,29 @@
+{{!--
+  sections/hero/hero-fullscreen.hbs — Hero Fullscreen
+  Vollbild-Hero mit Hintergrundbild, Overlay und zentriertem Text.
+  Verwendet @site.cover_image oder den neuesten Featured Post.
+  Presets: agency
+--}}
+<section class="c-hero c-hero--fullscreen">
+  {{#get "posts" filter="featured:true" limit="1" include="tags"}}
+    {{#foreach posts}}
+    <img class="c-hero__bg" src="{{img_url feature_image size="xl"}}" alt="" loading="eager">
+    <div class="c-hero__overlay"></div>
+    <div class="c-hero__inner l-wrapper">
+      {{#if primary_tag}}<span class="c-hero__tag">{{primary_tag.name}}</span>{{/if}}
+      <h1 class="c-hero__title">{{title}}</h1>
+      {{#if custom_excerpt}}<p class="c-hero__description">{{custom_excerpt}}</p>{{/if}}
+      <a href="{{url}}" class="c-hero__cta">Entdecken</a>
+    </div>
+    {{/foreach}}
+  {{else}}
+    {{#if @site.cover_image}}
+    <img class="c-hero__bg" src="{{@site.cover_image}}" alt="" loading="eager">
+    <div class="c-hero__overlay"></div>
+    {{/if}}
+    <div class="c-hero__inner l-wrapper">
+      <h1 class="c-hero__title">{{@site.title}}</h1>
+      {{#if @site.description}}<p class="c-hero__description">{{@site.description}}</p>{{/if}}
+    </div>
+  {{/get}}
+</section>

@@ -1,0 +1,33 @@
+{{!--
+  sections/social/social-proof-bar.hbs — Social Proof Bar
+  Zeigt Kennzahlen/Metriken als kompakte Leiste.
+  Verwendet eine Page mit dem Tag #social-proof.
+  Content der Page enthält die Zahlen (als Ghost-Karten oder HTML).
+  Presets: saas
+--}}
+<section class="c-social-proof" aria-label="Social Proof">
+  <div class="l-wrapper">
+    {{#get "pages" filter="tag:hash-social-proof" limit="1"}}
+      {{#foreach pages}}
+      <div class="c-social-proof__grid">
+        {{content}}
+      </div>
+      {{/foreach}}
+    {{else}}
+      <div class="c-social-proof__grid">
+        <div class="c-social-proof__stat">
+          <span class="c-social-proof__number">500+</span>
+          <span class="c-social-proof__label">Kunden</span>
+        </div>
+        <div class="c-social-proof__stat">
+          <span class="c-social-proof__number">99%</span>
+          <span class="c-social-proof__label">Zufriedenheit</span>
+        </div>
+        <div class="c-social-proof__stat">
+          <span class="c-social-proof__number">24/7</span>
+          <span class="c-social-proof__label">Support</span>
+        </div>
+      </div>
+    {{/get}}
+  </div>
+</section>

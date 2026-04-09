@@ -1,0 +1,23 @@
+{{!--
+  sections/cta/cta-newsletter.hbs — CTA Newsletter
+  Email-Signup-Bereich für Ghost Members.
+  Nutzt Ghost Portal für das Signup-Formular.
+  Presets: saas, blog
+--}}
+{{#if @site.members_enabled}}
+  {{#unless @member}}
+  <section class="c-cta-newsletter" aria-label="Newsletter">
+    <div class="l-wrapper">
+      <div class="c-cta-newsletter__inner">
+        <h2 class="c-cta-newsletter__title">{{@site.title}}</h2>
+        <p class="c-cta-newsletter__text">{{#if @site.description}}{{@site.description}}{{else}}Bleib auf dem Laufenden — direkt in dein Postfach.{{/if}}</p>
+        <form class="c-cta-newsletter__form" data-members-form="subscribe">
+          <input class="c-cta-newsletter__input" type="email" required data-members-email placeholder="Deine E-Mail-Adresse">
+          <button class="c-cta-newsletter__btn" type="submit">Abonnieren</button>
+        </form>
+        <p class="c-cta-newsletter__hint">Kein Spam. Jederzeit abbestellbar.</p>
+      </div>
+    </div>
+  </section>
+  {{/unless}}
+{{/if}}

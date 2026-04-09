@@ -1,0 +1,30 @@
+{{!--
+  sections/social/testimonials-grid.hbs — Testimonials Grid
+  Zeigt Kundenstimmen als 3-Spalten-Grid.
+  Verwendet Pages mit dem Tag #testimonial.
+  Content der Page = Zitat, Title = Name, Excerpt = Rolle/Firma.
+  Presets: saas, agency
+--}}
+<section class="c-testimonials" aria-label="Kundenstimmen">
+  <div class="l-wrapper">
+    <h2 class="c-testimonials__heading">Was unsere Kunden sagen</h2>
+    <div class="c-testimonials__grid">
+      {{#get "pages" filter="tag:hash-testimonial" limit="6" include="tags" order="published_at asc"}}
+        {{#foreach pages}}
+        <blockquote class="c-testimonial">
+          <div class="c-testimonial__quote">{{content}}</div>
+          <footer class="c-testimonial__author">
+            {{#if feature_image}}
+            <img class="c-testimonial__avatar" src="{{img_url feature_image size="xs"}}" alt="{{title}}" loading="lazy" width="48" height="48">
+            {{/if}}
+            <div class="c-testimonial__info">
+              <cite class="c-testimonial__name">{{title}}</cite>
+              {{#if custom_excerpt}}<span class="c-testimonial__role">{{custom_excerpt}}</span>{{/if}}
+            </div>
+          </footer>
+        </blockquote>
+        {{/foreach}}
+      {{/get}}
+    </div>
+  </div>
+</section>
