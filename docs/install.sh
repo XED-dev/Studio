@@ -148,7 +148,7 @@ info "Referenz-Themes (MIT-Bibliothek)..."
 
 mkdir -p "$REFERENCES_DIR/mit"
 
-# MIT-Themes: Bekannte hochwertige Ghost-Themes als Referenz
+# MIT-Themes: Offizielle TryGhost-Themes + Community-Highlights
 MIT_THEMES=(
   "TryGhost/Casper"
   "TryGhost/Starter"
@@ -168,24 +168,31 @@ MIT_THEMES=(
   "TryGhost/Dawn"
   "TryGhost/Journal"
   "TryGhost/Massively"
-  "TryGhost/Attila"
-  "TryGhost/Liebling"
+  "zutrinken/attila"
+  "eddiesigner/liebling"
 )
+
+# Kein interaktives Credential-Prompt bei fehlenden Repos
+export GIT_TERMINAL_PROMPT=0
 
 CLONED=0
 UPDATED=0
+SKIPPED=0
 for theme in "${MIT_THEMES[@]}"; do
   name=$(basename "$theme")
   dir="$REFERENCES_DIR/mit/$name"
   if [ -d "$dir/.git" ]; then
     git -C "$dir" pull --ff-only --quiet 2>/dev/null && ((UPDATED++)) || true
   else
-    git clone --depth 1 --quiet "https://github.com/$theme.git" "$dir" 2>/dev/null && ((CLONED++)) || {
-      echo "     ⚠  $theme nicht erreichbar — überspringe"
-    }
+    if git clone --depth 1 --quiet "https://github.com/$theme.git" "$dir" 2>/dev/null; then
+      ((CLONED++))
+    else
+      ((SKIPPED++))
+      [ -d "$dir" ] && rm -rf "$dir"  # Leere Verzeichnisse aufräumen
+    fi
   fi
 done
-ok "MIT-Themes: $CLONED neu, $UPDATED aktualisiert (${#MIT_THEMES[@]} gesamt)"
+ok "MIT-Themes: $CLONED neu, $UPDATED aktualisiert, $SKIPPED übersprungen (${#MIT_THEMES[@]} gesamt)"
 
 # Themex-Verzeichnis vorbereiten (wird manuell befüllt via infactory import-references)
 mkdir -p "$REFERENCES_DIR/themex"

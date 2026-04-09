@@ -486,7 +486,7 @@ keine Drittanbieter. Dein Content verlasst nie deinen Server.
 
 **Was kostet das?**
 inFactory ist MIT-lizenziert — kostenlos, auch fuer kommerzielle Nutzung.
-Du brauchst nur einen Ghost-Server (ab ca. 5 EUR/Monat bei Hetzner/Netcup).
+Du brauchst nur einen Ghost-Server — z.B. via [Hosting@ /Ghost](https://Hosting.at/Ghost).
 
 **Kann ich mehrere Ghost-Instanzen verwalten?**
 Ja. Jede Ghost-Instanz bekommt ihren eigenen inFactory-Server (eigener Port,
