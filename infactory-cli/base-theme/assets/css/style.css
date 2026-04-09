@@ -1732,29 +1732,37 @@
   letter-spacing: 1px;
 }
 
-/* --- Venue Grid --- */
+/* --- Venue Grid (BeTheme: Holztextur + beige Karten, 3x2) --- */
 .c-venue-grid {
-  padding: clamp(2rem, 5vw, 4rem) 0;
-  background: var(--color-bg-warm, #f8f8f8);
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
+  background: url('../images/bg-holz.jpg') center / cover no-repeat;
+  background-color: #5a3e2b;
 }
 
 .c-venue-grid__items {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: clamp(1.5rem, 3vw, 2rem);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
 }
 
 .c-venue-card {
-  background: var(--color-bg, #fff);
-  border-radius: 8px;
+  background: var(--color-warm-bg, #d5c8b9);
+  border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  transition: transform 0.2s, box-shadow 0.2s;
+  text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .c-venue-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 767px) {
+  .c-venue-grid__items {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 
 .c-venue-card__image img {
