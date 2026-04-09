@@ -32,7 +32,7 @@
   </div>
 
   {{!-- Feature Cards: 3-spaltig auf Holztextur fuer Pages mit #feature-card Tag --}}
-  {{#has tag="hash-feature-card"}}
+  {{#has tag="#feature-card"}}
   <section class="c-feature-cards" aria-label="Highlights">
     <div class="c-feature-cards__grid">
       {{#get "pages" filter="tag:hash-feature-card" limit="3" include="tags"}}
@@ -60,7 +60,7 @@
   {{/has}}
 
   {{!-- Venue Grid: fuer Pages mit #venue Tag --}}
-  {{#has tag="hash-feature-card"}}
+  {{#has tag="#feature-card"}}
   <section class="c-venue-grid" aria-label="Raeumlichkeiten">
     <div class="l-wrapper">
       <div class="c-venue-grid__items">
