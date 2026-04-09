@@ -31,6 +31,65 @@
     </div>
   </div>
 
+  {{!-- Feature Cards: 3-spaltig auf Holztextur fuer Pages mit #feature-card Tag --}}
+  {{#has tag="hash-feature-card"}}
+  <section class="c-feature-cards" aria-label="Highlights">
+    <div class="c-feature-cards__grid">
+      {{#get "pages" filter="tag:hash-feature-card" limit="3" include="tags"}}
+        {{#foreach pages}}
+        <article class="c-feature-card">
+          {{#if feature_image}}
+          <a href="{{url}}" class="c-feature-card__image" tabindex="-1" aria-hidden="true">
+            <img
+              src="{{img_url feature_image size="m"}}"
+              alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+              width="600" height="450" loading="lazy"
+            >
+          </a>
+          {{/if}}
+          <div class="c-feature-card__body">
+            <h3 class="c-feature-card__title">{{title}}</h3>
+            {{#if custom_excerpt}}<p class="c-feature-card__text">{{custom_excerpt}}</p>{{/if}}
+            <a href="{{url}}" class="c-feature-card__link">Mehr erfahren</a>
+          </div>
+        </article>
+        {{/foreach}}
+      {{/get}}
+    </div>
+  </section>
+  {{/has}}
+
+  {{!-- Venue Grid: fuer Pages mit #venue Tag --}}
+  {{#has tag="hash-feature-card"}}
+  <section class="c-venue-grid" aria-label="Raeumlichkeiten">
+    <div class="l-wrapper">
+      <div class="c-venue-grid__items">
+        {{#get "pages" filter="tag:hash-venue" limit="6" include="tags"}}
+          {{#foreach pages}}
+          <article class="c-venue-card">
+            {{#if feature_image}}
+            <div class="c-venue-card__image">
+              <img src="{{img_url feature_image size="m"}}"
+                   alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+                   loading="lazy" />
+            </div>
+            {{/if}}
+            <div class="c-venue-card__body">
+              <h3 class="c-venue-card__title">
+                <a href="{{url}}">{{title}}</a>
+              </h3>
+              {{#if custom_excerpt}}
+              <p class="c-venue-card__capacity">{{custom_excerpt}}</p>
+              {{/if}}
+            </div>
+          </article>
+          {{/foreach}}
+        {{/get}}
+      </div>
+    </div>
+  </section>
+  {{/has}}
+
   <div class="c-article__body l-wrapper gh-content">
     {{content}}
   </div>

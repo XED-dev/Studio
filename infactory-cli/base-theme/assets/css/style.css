@@ -477,105 +477,88 @@
   color: var(--color-primary);
 }
 
-/* --- Feature Cards (3-col, wood texture) --- */
+/* --- Feature Cards (3-col, BeTheme: Holztextur + beige Karten) --- */
 .c-feature-cards {
-  padding: 0;
-  background: #fff;
+  padding: clamp(2.5rem, 5vw, 4rem) 0;
+  background: url('../images/bg-holz.jpg') center / cover no-repeat;
+  background-color: #5a3e2b;
 }
 
 .c-feature-cards__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 4px;
-  max-width: 100%;
-  margin: 0;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: var(--max-width, 1220px);
+  margin: 0 auto;
+  padding: 0 2rem;
 }
 
 .c-feature-card {
-  position: relative;
-  overflow: hidden;
+  background: var(--color-warm-bg, #d5c8b9);
   border-radius: 4px;
-  cursor: pointer;
+  overflow: hidden;
+  text-align: center;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.c-feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
 
 .c-feature-card__image {
-  aspect-ratio: 4/3;
-  overflow: hidden;
+  display: block;
 }
 
 .c-feature-card__image img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s;
-}
-
-.c-feature-card:hover .c-feature-card__image img {
-  transform: scale(1.08);
+  height: auto;
+  display: block;
 }
 
 .c-feature-card__body {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 1.5rem;
-  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
-  transition: background 0.3s;
-}
-
-.c-feature-card:hover .c-feature-card__body {
-  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.1) 100%);
+  padding: 1.5rem 1.25rem 2rem;
 }
 
 .c-feature-card__title {
   font-family: var(--font-heading);
-  color: #fff;
+  color: var(--color-text-heading, #2c2930);
+  font-weight: 400;
   font-size: 1.4rem;
-  margin: 0 0 0.25rem;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  margin: 0 0 0.5rem;
 }
 
 .c-feature-card__text {
   font-size: 0.9rem;
-  color: rgba(255,255,255,0.85);
-  margin: 0 0 0.75rem;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: max-height 0.3s, opacity 0.3s;
-}
-
-.c-feature-card:hover .c-feature-card__text {
-  max-height: 4em;
-  opacity: 1;
+  color: var(--color-text, #554030);
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
 }
 
 .c-feature-card__link {
   display: inline-block;
-  padding: 0.45rem 1.25rem;
-  background: var(--color-primary);
+  padding: 0.5rem 1.5rem;
+  background: var(--color-primary, #006633);
   color: #fff;
   text-decoration: none;
+  font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.85rem;
   border-radius: 3px;
   transition: background 0.2s;
-  align-self: flex-start;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.3s, transform 0.3s, background 0.2s;
-}
-
-.c-feature-card:hover .c-feature-card__link {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .c-feature-card__link:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-hover, #005529);
   color: #fff;
+}
+
+@media (max-width: 767px) {
+  .c-feature-cards__grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 0 1rem;
+  }
 }
 
 /* --- CTA Bar --- */
