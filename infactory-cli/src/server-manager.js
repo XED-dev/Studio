@@ -227,6 +227,7 @@ Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production
 Environment=INFACTORY_CONFIG=${configPath()}
+Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/infactory/browsers
 
 [Install]
 WantedBy=multi-user.target

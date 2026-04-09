@@ -123,22 +123,31 @@ else
       ok "shot-scraper + crawl4ai installiert"
     fi
 
-    # Playwright Browser installieren
-    info "Playwright Browser installieren..."
-    "$VENV_DIR/bin/shot-scraper" install 2>/dev/null && ok "Playwright Chromium installiert" || {
+    # Playwright Browser in gemeinsames Verzeichnis installieren
+    # PLAYWRIGHT_BROWSERS_PATH sorgt dafuer dass ALLE User (root, g-host, etc.)
+    # die gleichen Browser finden — unabhaengig davon wer install.sh ausfuehrt.
+    export PLAYWRIGHT_BROWSERS_PATH="$INSTALL_DIR/browsers"
+    mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
+
+    info "Playwright Browser installieren (nach $PLAYWRIGHT_BROWSERS_PATH)..."
+    "$VENV_DIR/bin/python3" -m playwright install chromium 2>/dev/null && ok "Playwright Chromium installiert" || {
       echo "     ⚠  Playwright-Installation fehlgeschlagen."
-      echo "     Manuell: $VENV_DIR/bin/shot-scraper install"
-      echo "     System-Deps: npx playwright install-deps"
+      echo "     Manuell: PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH $VENV_DIR/bin/python3 -m playwright install chromium"
     }
 
+    # Lesbar fuer alle User (Ghost-User braucht Zugriff)
+    chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH"
+
     # Playwright System-Dependencies (braucht root)
-    if command -v npx &>/dev/null; then
-      info "Playwright System-Dependencies..."
-      npx playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
-        echo "     ⚠  Einige System-Dependencies fehlen evtl."
-        echo "     Manuell: sudo npx playwright install-deps chromium"
-      }
-    fi
+    info "Playwright System-Dependencies..."
+    "$VENV_DIR/bin/python3" -m playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
+      if command -v npx &>/dev/null; then
+        npx playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
+          echo "     ⚠  Einige System-Dependencies fehlen evtl."
+          echo "     Manuell: sudo npx playwright install-deps chromium"
+        }
+      fi
+    }
   fi
 fi
 

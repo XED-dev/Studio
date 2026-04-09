@@ -22,6 +22,21 @@ const router = express.Router();
 
 // ─── Tool Resolution ─────────────────────────────────────────────────────────
 
+// Playwright-Browser liegen in /opt/infactory/browsers/ (install.sh setzt das)
+// PLAYWRIGHT_BROWSERS_PATH muss bei jedem Subprocess gesetzt werden, damit
+// shot-scraper/playwright die Browser findet — egal welcher User den Server startet.
+const INSTALL_DIR = path.dirname(config.venvPath);  // /opt/infactory
+const BROWSERS_PATH = path.join(INSTALL_DIR, 'browsers');
+
+function getSubprocessEnv() {
+  const python = getVenvPython();
+  return {
+    ...process.env,
+    PATH: `${path.dirname(python)}:${process.env.PATH}`,
+    PLAYWRIGHT_BROWSERS_PATH: BROWSERS_PATH,
+  };
+}
+
 function getVenvPython() {
   const p = path.join(config.venvPath, 'bin', 'python3');
   if (!fs.existsSync(p)) return null;
@@ -117,7 +132,7 @@ function takeScreenshot(url, outputPath, { width = 1440, wait = 2000 } = {}) {
   ], {
     timeout: 45000,
     encoding: 'utf8',
-    env: { ...process.env, PATH: `${path.dirname(python)}:${process.env.PATH}` },
+    env: getSubprocessEnv(),
   });
 
   if (result.status !== 0) {
@@ -148,7 +163,7 @@ function extractCSSTokens(url) {
   const result = spawnSync(python, [shotScraper, 'javascript', url, wrappedJs], {
     timeout: 30000,
     encoding: 'utf8',
-    env: { ...process.env, PATH: `${path.dirname(python)}:${process.env.PATH}` },
+    env: getSubprocessEnv(),
   });
 
   if (result.status !== 0) throw new Error(`CSS extraction failed: ${(result.stderr || '').substring(0, 200)}`);
@@ -186,7 +201,7 @@ function extractStructure(url) {
   if (extractPy) {
     const pyResult = spawnSync(python, [extractPy, url], {
       timeout: 45000, encoding: 'utf8',
-      env: { ...process.env, PATH: `${path.dirname(python)}:${process.env.PATH}` },
+      env: getSubprocessEnv(),
     });
     if (pyResult.status === 0) {
       const stdout = pyResult.stdout || '';
@@ -250,7 +265,7 @@ function extractStructure(url) {
   try {
     const ssResult = spawnSync(python, [shotScraper, 'javascript', url, domJs], {
       timeout: 30000, encoding: 'utf8',
-      env: { ...process.env, PATH: `${path.dirname(python)}:${process.env.PATH}` },
+      env: getSubprocessEnv(),
     });
     if (ssResult.status === 0) {
       let out = ssResult.stdout.trim();
