@@ -41,6 +41,11 @@ if (configPath && fs.existsSync(configPath)) {
       },
     },
 
+    // NGINX-Target Allowlist (Track B) — explizit konfigurierte Webroots in
+    // die der inFactory Server statisches HTML/CSS/JS schreiben darf.
+    // Format: { "<site>": { "webroot": "/var/www/.../htdocs/" } }
+    nginxSites: (raw.nginx_sites && typeof raw.nginx_sites === 'object') ? raw.nginx_sites : {},
+
     imageArchivePath: raw.image_archive_path || '',
     venvPath:         raw.venv_path || '/opt/infactory/venv',
     referencesPath:   raw.references_path || '/opt/infactory/references',
@@ -74,12 +79,25 @@ if (configPath && fs.existsSync(configPath)) {
     return { url: url.replace(/\/$/, ''), key, contentPath };
   }
 
+  // NGINX_SITES_JSON erlaubt im .env-Fallback ein JSON-String mit der gleichen
+  // Struktur wie infactory.json#nginx_sites: {"jam":{"webroot":"/var/www/..."}}
+  let nginxSitesEnv = {};
+  if (process.env.NGINX_SITES_JSON) {
+    try {
+      const parsed = JSON.parse(process.env.NGINX_SITES_JSON);
+      if (parsed && typeof parsed === 'object') nginxSitesEnv = parsed;
+    } catch (e) {
+      console.warn(`  WARNUNG: NGINX_SITES_JSON ist kein gültiges JSON: ${e.message}`);
+    }
+  }
+
   config = {
     port:     parseInt(process.env.INFACTORY_PORT || '3333', 10),
     apiKey:   process.env.INFACTORY_API_KEY || '',
     cliPath:  path.resolve(__dirname, '..', process.env.INFACTORY_CLI_PATH || '../infactory-cli'),
     autoSleepMinutes: parseInt(process.env.AUTO_SLEEP_MINUTES || '360', 10),
     sites:    {},
+    nginxSites: nginxSitesEnv,
     imageArchivePath: process.env.IMAGE_ARCHIVE_PATH || '',
     venvPath:         process.env.INFACTORY_VENV_PATH || '/opt/infactory/venv',
     referencesPath:   process.env.INFACTORY_REFERENCES_PATH || '/opt/infactory/references',

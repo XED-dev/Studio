@@ -237,6 +237,63 @@ curl -X PUT http://localhost:3333/api/theme/presets/steirischursprung \
 curl http://localhost:3333/api/theme/sections -H "X-API-Key: $KEY"
 ```
 
+### NGINX Static Target (Track B — Schritt A)
+
+Ab Server-Version 1.2 unterstützt der inFactory Server einen **NGINX-Static-Target-Driver**: er schreibt vom Server kompiliertes HTML/CSS/JS direkt in einen explizit konfigurierten NGINX-Webroot. Das ist der erste Baustein der `inFactory@ /Studio` Track-B-Architektur (siehe `dev/bin/XED-Studio/docs/WHITEPAPER.md`).
+
+**Sicherheitsmodell:** Der Server schreibt **ausschließlich** in Webroots, die in der Server-Config explizit als Allowlist hinterlegt sind. Pfad-Traversal (`..`), absolute Pfade und Null-Bytes werden abgelehnt. Der normalisierte Zielpfad wird gegen den konfigurierten Webroot validiert.
+
+**Konfiguration in `infactory.json`:**
+
+```json
+{
+  "infactory_port": 3333,
+  "api_key": "...",
+  "nginx_sites": {
+    "jam": { "webroot": "/var/www/jam.steirischursprung.at/htdocs/" }
+  }
+}
+```
+
+(Im `.env`-Fallback alternativ: `NGINX_SITES_JSON='{"jam":{"webroot":"/var/www/jam.steirischursprung.at/htdocs/"}}'`)
+
+**Konfigurierte Sites auflisten:**
+
+```bash
+curl http://localhost:3333/api/nginx/sites -H "X-API-Key: $KEY"
+# → { sites: { jam: { webroot, exists, writable } }, count: 1 }
+```
+
+**Datei in einen Webroot schreiben:**
+
+```bash
+curl -X POST http://localhost:3333/api/nginx/write \
+  -H "X-API-Key: $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "site": "jam",
+    "path": "index.html",
+    "content": "<!DOCTYPE html><html><body><h1>Hello from inFactory</h1></body></html>"
+  }'
+# → { ok: true, site: "jam", path: "index.html", absolute: "/var/www/.../index.html", bytes: 78, mtime: "..." }
+```
+
+**Body-Felder:**
+
+| Feld | Typ | Pflicht | Beschreibung |
+|---|---|---|---|
+| `site` | String | ja | Schlüssel aus `nginx_sites` (z.B. `"jam"`) |
+| `path` | String | ja | Relativer Pfad innerhalb des Webroots (z.B. `"index.html"`, `"hotel/index.html"`) |
+| `content` | String | ja | Datei-Inhalt |
+| `encoding` | String | nein | `"utf8"` (Default) oder `"base64"` für Binärdaten |
+
+**Fehlerfälle:**
+
+- `400` — `path` enthält `..`, ist absolut, leer, oder enthält Null-Bytes
+- `400` — Resolved Pfad verlässt den Webroot
+- `404` — `site` ist nicht in `nginx_sites` konfiguriert (Antwort enthält `configured_sites` und `hint`)
+- `500` — Schreiben fehlgeschlagen (Permissions, Disk-Space, etc.) — Antwort enthält `absolute` und Original-Fehlermeldung
+
 ---
 
 ## Dependencies (aktuell)

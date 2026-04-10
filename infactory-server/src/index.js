@@ -55,6 +55,7 @@ app.use('/api/theme',  auth, require('./routes/theme'));
 app.use('/api/ghost',  auth, require('./routes/ghost'));
 app.use('/api/qa',     auth, require('./routes/qa'));
 app.use('/api/system', auth, require('./routes/system'));
+app.use('/api/nginx',  auth, require('./routes/nginx'));   // Track B — NGINX Target
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 
@@ -71,12 +72,18 @@ const server = app.listen(config.port, () => {
     .map(([k, v]) => `${k}: ${v.url}`)
     .join(', ') || Object.values(config.sites).map(v => v.url).join(', ') || '(keine)';
 
+  const nginxSiteCount = Object.keys(config.nginxSites || {}).length;
+  const nginxSummary = nginxSiteCount > 0
+    ? Object.entries(config.nginxSites).map(([k, v]) => `${k}: ${v.webroot}`).join(', ')
+    : '(keine — nginx_sites in infactory.json setzen)';
+
   console.log(`
-  inFactory Server v1.1
+  inFactory Server v1.2
   ${config.domain || 'Factory Floor Controller'}
 
   Port:        ${config.port}
   Ghost:       ${sites}
+  NGINX:       ${nginxSummary}
   CLI:         ${config.cliPath}
   Auto-Sleep:  ${config.autoSleepMinutes} min
   Config:      ${config.configPath || '.env (Legacy)'}
