@@ -340,28 +340,29 @@ async function installTrackB(opts = {}) {
     }
   } catch { /* ss nicht verfügbar → weiter */ }
 
-  // 2. API-Key: reuse aus /tmp/.infactory.api.key wenn 64-hex, sonst neu
-  const keyFile = '/tmp/.infactory.api.key';
+  // 2. API-Key — /var/xed/<tld>/infactory.json ist Single-Source-of-Truth.
+  //    Re-Install: bestehenden Key weiterverwenden (Idempotenz — curl-Kommandos
+  //                des Users bleiben gültig).
+  //    Erst-Install: frisch generieren.
+  //
+  //    /tmp/.infactory.api.key wird bewusst NICHT als Cache verwendet. In Session 19
+  //    lag dort ein Ghost-Admin-Key im Format <id>:<secret> und unser Code hat ihn als
+  //    "nicht 64-hex" ignoriert — das führte nur zu Verwirrung. Ein "irgendwo im /tmp"
+  //    Cache ist ohnehin nicht multi-site-fähig. Die Wahrheit ist die infactory.json.
+  const cfgPath = path.join(cwd, 'infactory.json');
   let apiKey = null;
-  if (fs.existsSync(keyFile)) {
+  if (fs.existsSync(cfgPath)) {
     try {
-      const existing = fs.readFileSync(keyFile, 'utf8').trim();
-      if (/^[0-9a-f]{64}$/.test(existing)) {
-        apiKey = existing;
-        info(`  API-Key:  reuse ${keyFile} (${apiKey.substring(0, 8)}…)`);
-      } else {
-        info(`  API-Key:  ${keyFile} ist nicht 64-hex — ignoriere`);
+      const existing = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      if (existing.api_key && /^[0-9a-f]{64}$/.test(existing.api_key)) {
+        apiKey = existing.api_key;
+        info(`  API-Key:  reuse aus ${cfgPath} (${apiKey.substring(0, 8)}…)`);
       }
-    } catch { /* unreadable → weiter */ }
+    } catch { /* korrupte config → neu generieren */ }
   }
   if (!apiKey) {
     apiKey = crypto.randomBytes(32).toString('hex');
-    try {
-      fs.writeFileSync(keyFile, apiKey + '\n', { mode: 0o600 });
-      info(`  API-Key:  neu → ${keyFile} (${apiKey.substring(0, 8)}…)`);
-    } catch (err) {
-      info(`  API-Key:  neu (${apiKey.substring(0, 8)}…) — ${keyFile} nicht schreibbar: ${err.message}`);
-    }
+    info(`  API-Key:  neu generiert (${apiKey.substring(0, 8)}…)`);
   }
 
   // 3. Subdomain-Autodetect: /var/www/*.<domain>/htdocs/ + /var/www/<domain>/htdocs/
@@ -421,7 +422,6 @@ async function installTrackB(opts = {}) {
     references_path: hasRefs ? globalRefs : '',
     installed_at: new Date().toISOString(),
   };
-  const cfgPath = path.join(cwd, 'infactory.json');
   fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
   info(`\n  ✔  ${cfgPath}`);
 
@@ -449,76 +449,120 @@ WantedBy=multi-user.target
 `;
   const tmpSvc = path.join(cwd, `${svcName}.service`);
   fs.writeFileSync(tmpSvc, svcContent, 'utf8');
+  info(`  ✔  ${tmpSvc}`);
 
-  info(`\n  systemd Setup (sudo) …`);
-  let svcInstalled = false;
-  try {
-    execSync(`sudo cp ${tmpSvc} ${svcFile}`, { stdio: 'inherit' });
-    execSync('sudo systemctl daemon-reload', { stdio: 'inherit' });
-    execSync(`sudo systemctl enable ${svcName}`, { stdio: 'inherit' });
-    info(`  ✔  ${svcName} enabled`);
-    svcInstalled = true;
-  } catch {
-    warn(`\n  ⚠  systemd Setup via sudo fehlgeschlagen. Manuell:`);
-    warn(`     sudo cp ${tmpSvc} ${svcFile}`);
-    warn(`     sudo systemctl daemon-reload`);
-    warn(`     sudo systemctl enable ${svcName}\n`);
-  }
-
-  // 7. ACL auf WordOps-Webroots (sudo, best-effort)
-  info(`\n  ACL setzen (sudo) …`);
-  for (const { slug, webroot } of siteEntries) {
+  // 7. finish-install-as-root.sh — sammelt ALLE Root-Operationen in EIN Script.
+  //    Rationale: g-host hat in der Regel kein passwortloses sudo. Anstatt den User
+  //    mit 4+ verstreuten "sudo Befehl"-Zeilen zu bombardieren, bekommt er EINE
+  //    klare Aktion: `sudo bash <pfad>`. Open-Source-Support-fähig.
+  //    Das Script räumt sich nach Erfolg selbst auf (rm -f am Ende).
+  const finishScript = path.join(cwd, 'finish-install-as-root.sh');
+  const aclLines = siteEntries.map(({ slug, webroot }) => {
     const wr = webroot.replace(/\/$/, '');
-    try {
-      execSync(`sudo setfacl -R -m u:g-host:rwx ${wr}`,    { stdio: verbose ? 'inherit' : 'pipe' });
-      execSync(`sudo setfacl -R -d -m u:g-host:rwx ${wr}`, { stdio: verbose ? 'inherit' : 'pipe' });
-      info(`  ✔  ${slug}: ${wr}`);
-    } catch {
-      warn(`  ⚠  setfacl fehlgeschlagen für ${wr}. Manuell:`);
-      warn(`     sudo setfacl -R -m u:g-host:rwx ${wr}`);
-      warn(`     sudo setfacl -R -d -m u:g-host:rwx ${wr}`);
-    }
-  }
+    return `setfacl -R -m  u:g-host:rwx ${wr}   # ${slug}\n` +
+           `setfacl -R -dm u:g-host:rwx ${wr}   # ${slug} (default)`;
+  }).join('\n');
 
-  // 8. Service starten + Health-Check
-  if (svcInstalled) {
-    info(`\n  Service starten …`);
-    try {
-      execSync(`sudo systemctl start ${svcName}`, { stdio: 'inherit' });
-      execSync('sleep 1');
-      const state = execSync(`systemctl is-active ${svcName}`, { encoding: 'utf8' }).trim();
-      if (state === 'active') {
-        info(`  ✔  ${svcName} active`);
-      } else {
-        warn(`  ⚠  ${svcName} ist ${state} — journalctl -u ${svcName} -n 30`);
-      }
-    } catch {
-      warn(`  ⚠  Start fehlgeschlagen — journalctl -u ${svcName} -n 30`);
-    }
+  const finishContent = `#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+# Auto-generiert von 'infactory install' (Track B) — ${domain}
+# ${new Date().toISOString()}
+#
+# Diese Operationen benoetigen root. Ausfuehren als:
+#   sudo bash ${finishScript}
+# ─────────────────────────────────────────────────────────────────────────────
+set -euo pipefail
 
-    info(`\n  Health-Check …`);
-    try {
-      execSync(`curl -sf -o /dev/null http://localhost:${infactoryPort}/api/health`, { timeout: 5000 });
-      info(`  ✔  http://localhost:${infactoryPort}/api/health`);
-    } catch {
-      warn(`  ⚠  Health-Check fehlgeschlagen. Manuell: curl -v http://localhost:${infactoryPort}/api/health`);
-    }
+SVC="${svcName}"
+SVC_SRC="${tmpSvc}"
+SVC_DST="${svcFile}"
+
+echo '→ systemd-Service installieren'
+cp "$SVC_SRC" "$SVC_DST"
+systemctl daemon-reload
+systemctl enable "$SVC"
+
+echo '→ ACL fuer WordOps-Webroots'
+${aclLines}
+
+echo '→ Service (re)starten'
+systemctl restart "$SVC"
+sleep 1
+
+if ! systemctl is-active --quiet "$SVC"; then
+  echo "  ✗  $SVC ist nicht active"
+  journalctl -u "$SVC" -n 30 --no-pager
+  exit 1
+fi
+echo "  ✔  $SVC active"
+
+echo '→ Health-Check'
+if curl -sf -o /dev/null "http://localhost:${infactoryPort}/api/health"; then
+  echo "  ✔  http://localhost:${infactoryPort}/api/health"
+else
+  echo "  ✗  Health-Check fehlgeschlagen"
+  echo "     curl -v http://localhost:${infactoryPort}/api/health"
+  exit 1
+fi
+
+echo ''
+echo '════════════════════════════════════════════════════'
+echo '  Track-B Finish abgeschlossen — ${domain}'
+echo '════════════════════════════════════════════════════'
+
+# Selbstaufraeumung nach Erfolg
+rm -f "$SVC_SRC" "${finishScript}"
+`;
+  fs.writeFileSync(finishScript, finishContent, { mode: 0o755 });
+  info(`  ✔  ${finishScript}`);
+
+  // 8. Best-Effort: wenn g-host passwortloses sudo kann, Script direkt ausführen.
+  //    Sonst sauber auf manuellen Aufruf verweisen — kein wildes sudo-stderr-Gespam.
+  info(`\n  Root-Operationen …`);
+  let finishOk = false;
+  try {
+    execSync('sudo -n true', { stdio: 'pipe' });
+    execSync(`sudo -n bash ${finishScript}`, { stdio: 'inherit' });
+    finishOk = true;
+  } catch {
+    // Kein NOPASSWD ODER Script hat gefailt. Script bleibt liegen zum Retry.
+    finishOk = false;
   }
 
   // 9. Zusammenfassung
   info(`\n  ═══════════════════════════════════════════════════`);
-  info(`  Track-B Installation abgeschlossen`);
+  if (finishOk) {
+    info(`  Track-B Installation abgeschlossen`);
+  } else {
+    info(`  Track-B Installation vorbereitet (root-Schritt ausstehend)`);
+  }
   info(`  ═══════════════════════════════════════════════════`);
   info(`  Domain:   ${domain}`);
   info(`  Config:   ${cfgPath}`);
   info(`  Service:  ${svcName}`);
   info(`  Port:     ${infactoryPort}`);
   info(`  Sites:    ${siteEntries.map(s => s.slug).join(', ')}`);
-  info(`  API-Key:  ${keyFile} (0600)`);
   info(``);
-  info(`  Nächste Schritte:`);
+
+  if (!finishOk) {
+    warn(`  Root-Operationen konnten nicht automatisch ausgefuehrt werden`);
+    warn(`  (g-host hat kein passwortloses sudo — auf vielen Systemen normal).`);
+    warn(``);
+    warn(`  Naechster Schritt — EINMALIG als root:`);
+    warn(``);
+    warn(`      sudo bash ${finishScript}`);
+    warn(``);
+    warn(`  Das Script installiert den systemd-Service, setzt die ACLs,`);
+    warn(`  startet den Service und verifiziert den Health-Endpoint.`);
+    warn(`  Nach Erfolg raeumt es sich selbst auf.`);
+    warn(``);
+  }
+
+  info(`  Test via curl (API-Key aus infactory.json extrahieren):`);
+  info(``);
+  info(`    KEY=\$(python3 -c 'import json; print(json.load(open("${cfgPath}"))["api_key"])')`);
   info(`    curl -s https://<sub>.${domain}/xed/api/health`);
-  info(`    curl -s https://<sub>.${domain}/xed/api/nginx/sites -H "X-API-Key: \$(cat ${keyFile})"`);
+  info(`    curl -s https://<sub>.${domain}/xed/api/nginx/sites -H "X-API-Key: \$KEY"`);
   info(``);
 }
 
