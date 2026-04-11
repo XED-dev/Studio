@@ -516,16 +516,42 @@ rm -f "$SVC_SRC" "${finishScript}"
   fs.writeFileSync(finishScript, finishContent, { mode: 0o755 });
   info(`  ✔  ${finishScript}`);
 
-  // 8. Best-Effort: wenn g-host passwortloses sudo kann, Script direkt ausführen.
-  //    Sonst sauber auf manuellen Aufruf verweisen — kein wildes sudo-stderr-Gespam.
+  // 8. Root-Operationen ausfuehren. Drei-Stufen-Logik (Ghost-kompatible UX):
+  //
+  //    Stufe 1: NOPASSWD-Probe via `sudo -n true`.
+  //             `-n` = non-interactive; unterdrueckt nur den Prompt, bypassed
+  //             KEINE Permissions. Erfolgt dieser Probe, existiert eine explizite
+  //             NOPASSWD-Regel in sudoers → Script laeuft still durch.
+  //
+  //    Stufe 2: Kein NOPASSWD, aber interaktives Terminal vorhanden
+  //             (process.stdin.isTTY) → `sudo bash ...` ohne `-n`, sudo prompted
+  //             den User normal nach Passwort. Gleiche UX wie `ghost install`.
+  //
+  //    Stufe 3: Kein NOPASSWD, kein TTY (z.B. bei `su - g-host -c 'infactory install'`
+  //             ohne echtes Terminal im Subprozess) → direkt Fallback auf die
+  //             manuelle Ausfuehrung des finish-Scripts.
   info(`\n  Root-Operationen …`);
   let finishOk = false;
+
+  let canSudoSilent = false;
   try {
     execSync('sudo -n true', { stdio: 'pipe' });
-    execSync(`sudo -n bash ${finishScript}`, { stdio: 'inherit' });
-    finishOk = true;
-  } catch {
-    // Kein NOPASSWD ODER Script hat gefailt. Script bleibt liegen zum Retry.
+    canSudoSilent = true;
+  } catch { /* NOPASSWD nicht verfuegbar */ }
+
+  if (canSudoSilent) {
+    try {
+      execSync(`sudo -n bash ${finishScript}`, { stdio: 'inherit' });
+      finishOk = true;
+    } catch { finishOk = false; }
+  } else if (process.stdin.isTTY) {
+    info(`  sudo-Passwort-Prompt erwartet (interaktiv) …\n`);
+    try {
+      execSync(`sudo bash ${finishScript}`, { stdio: 'inherit' });
+      finishOk = true;
+    } catch { finishOk = false; }
+  } else {
+    // Kein TTY, kein NOPASSWD → nicht versuchen, sauber auf Fallback verweisen
     finishOk = false;
   }
 
