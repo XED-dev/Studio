@@ -6,7 +6,6 @@
 
 set -euo pipefail
 
-VERSION="1.1.0"
 REPO="https://github.com/XED-dev/Studio.git"
 INSTALL_DIR="/opt/infactory"
 BIN_LINK="/usr/local/bin/infactory"
@@ -25,7 +24,7 @@ ok()    { echo -e "  ${GREEN}✔${NC} $1"; }
 err()   { echo -e "  ${RED}✗${NC} $1" >&2; }
 
 echo ""
-echo -e "  ${BOLD}inFactory v${VERSION}${NC} — Ghost Theme Factory"
+echo -e "  ${BOLD}inFactory${NC} — Studio.XED.dev"
 echo -e "  ${BLUE}https://studio.xed.dev${NC}"
 echo ""
 
@@ -66,11 +65,29 @@ ok "npm $(npm --version)"
 if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/infactory-cli/bin/infactory.js" ]; then
   info "Bestehende Installation gefunden — Update..."
   cd "$INSTALL_DIR"
-  git pull --ff-only 2>/dev/null || true
+
+  # Server-Deploy-Pattern: fetch + reset --hard origin/main.
+  # Kein merge, kein rebase — lokale Mods an getrackten Files sind unerwuenscht und werden verworfen.
+  # Untracked files (venv/, browsers/, references/, package-lock.json) bleiben unberuehrt.
+  if ! git fetch --quiet origin main; then
+    err "git fetch origin main fehlgeschlagen — ist $INSTALL_DIR noch ein git repo?"
+    exit 1
+  fi
+
+  OLD_HEAD=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
+  NEW_HEAD=$(git rev-parse --short origin/main)
+
+  if [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
+    git reset --hard --quiet origin/main
+    ok "Code aktualisiert: $OLD_HEAD → $NEW_HEAD"
+  else
+    ok "Bereits aktuell: $NEW_HEAD"
+  fi
+
   cd infactory-cli && npm install --omit=dev --silent 2>/dev/null
   cd ../infactory-server && npm install --omit=dev --silent 2>/dev/null
   cd ..
-  ok "Update abgeschlossen"
+  ok "Dependencies installiert"
 else
   info "Installiere nach $INSTALL_DIR..."
 
@@ -219,23 +236,35 @@ if [ -L "$BIN_LINK" ] || [ -f "$BIN_LINK" ]; then
 fi
 
 sudo ln -s "$CLI_BIN" "$BIN_LINK"
-sudo chmod +x "$CLI_BIN"
+# Kein chmod +x — der Mode 100755 ist jetzt im git index verankert,
+# sonst wuerde git pull / reset bei jedem Run einen dirty working tree produzieren.
 ok "infactory → $BIN_LINK"
 
 # ─── Done ─────────────────────────────────────────────────────────────────────
 
+# Versionen aus package.json lesen (lebt im Repo, statt im install.sh hardcoded).
+CLI_VERSION=$(node -p "require('$INSTALL_DIR/infactory-cli/package.json').version" 2>/dev/null || echo "?")
+SERVER_VERSION=$(node -p "require('$INSTALL_DIR/infactory-server/package.json').version" 2>/dev/null || echo "?")
+HEAD_SHORT=$(cd "$INSTALL_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "?")
+
 echo ""
 echo -e "  ${GREEN}${BOLD}Installation abgeschlossen!${NC}"
 echo ""
-echo "  Installiert:"
-echo "     CLI + Server:  $INSTALL_DIR/"
-[ -d "$VENV_DIR/bin" ] && echo "     Python venv:   $VENV_DIR/"
-echo "     Referenzen:    $REFERENCES_DIR/"
+echo "  CLI:     v${CLI_VERSION}"
+echo "  Server:  v${SERVER_VERSION}"
+echo "  Commit:  ${HEAD_SHORT}"
+echo "  Pfad:    $INSTALL_DIR/"
+[ -d "$VENV_DIR/bin" ] && echo "  Venv:    $VENV_DIR/"
+echo "  Refs:    $REFERENCES_DIR/"
 echo ""
-echo "  Nächster Schritt — im Ghost-Verzeichnis:"
+echo -e "  ${BOLD}Nächster Schritt — pro Site:${NC}"
 echo ""
-echo -e "    ${BOLD}cd /var/ghost/mein-blog${NC}"
-echo -e "    ${BOLD}infactory install${NC}"
+echo "  Track A (Ghost Theme Factory — eingefroren):"
+echo -e "    ${BOLD}cd /var/ghost/<domain> && infactory install${NC}"
+echo ""
+echo "  Track B (LEMP Section-Renderer — aktiv):"
+echo -e "    ${BOLD}mkdir -p /var/xed/<tld> && chown -R g-host:g-host /var/xed/<tld>${NC}"
+echo -e "    ${BOLD}su - g-host -c 'cd /var/xed/<tld> && infactory install'${NC}"
 echo ""
 echo "  Lizenzierte Themes importieren:"
 echo -e "    ${BOLD}infactory import-references --url=https://nextcloud.example.com/s/abc/download${NC}"
