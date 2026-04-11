@@ -3,10 +3,14 @@
  *
  * Befehle: install, start, stop, restart, status, update
  *
- * inFactory installiert sich PRO Ghost-Instanz ins Ghost-Verzeichnis als .infactory/
- * Port-Schema: Ghost-Port + 1000 = inFactory-Port
+ * install() erkennt Track anhand cwd:
+ *   - cwd unter /var/ghost/<domain>/  → Track A (Ghost Theme Factory, eingefroren)
+ *     .infactory/ Verzeichnis, Port = Ghost-Port + 1000
+ *   - cwd unter /var/xed/<tld>/       → Track B (LEMP Section-Renderer)
+ *     infactory.json direkt in cwd, Port 3370 default, nginx_sites Allowlist,
+ *     zentraler Code in /opt/infactory/ (nicht kopiert)
  *
- * Voraussetzung: cwd = Ghost-Verzeichnis (z.B. /var/ghost/steirischursprung.at)
+ * Track A ist eingefroren — siehe docs/AGENTS.md Abschnitt 15 und 3.1
  */
 
 'use strict';
@@ -79,6 +83,12 @@ function serviceName() {
 // ─── install ──────────────────────────────────────────────────────────────────
 
 async function install(opts = {}) {
+  // Track-B Auto-Detect: cwd ist direktes Kind von /var/xed/
+  // → kein Ghost-Kontext, nginx_sites Allowlist, zentraler Code in /opt/infactory/
+  if (path.dirname(process.cwd()) === '/var/xed') {
+    return installTrackB(opts);
+  }
+
   const { verbose = false } = opts;
   const info = (m) => console.log(m);
 
@@ -274,6 +284,242 @@ WantedBy=multi-user.target
   info(`  API-Key (für AI Agent): ${apiKey}`);
   info(`  Server: http://localhost:${infactoryPort}/api/health`);
   info(`  Status: infactory status\n`);
+}
+
+// ─── installTrackB (LEMP Section-Renderer) ──────────────────────────────────
+//
+// Track B unterscheidet sich von Track A grundlegend:
+//   - cwd ist /var/xed/<tld>/ (nicht /var/ghost/<domain>/)
+//   - kein Ghost-Kontext, kein config.production.json
+//   - Code zentral in /opt/infactory/ (nicht kopiert pro Site wie Track A)
+//   - infactory.json direkt in cwd (nicht in .infactory/)
+//   - nginx_sites Allowlist für POST /xed/api/nginx/write
+//   - setfacl auf WordOps-Webroots
+//
+// Siehe dev/bin/XED-Studio/docs/WHITEPAPER.md Abschnitt 13.6 + 21
+
+async function installTrackB(opts = {}) {
+  const { verbose = false } = opts;
+  const info = (m) => console.log(m);
+  const warn = (m) => console.warn(m);
+  const fail = (m) => { console.error(m); process.exit(1); };
+
+  const cwd    = process.cwd();
+  const domain = path.basename(cwd);
+
+  info('\n  inFactory Install — Track B (LEMP Section-Renderer)\n');
+  info(`  Domain:   ${domain}`);
+  info(`  Source:   ${cwd}`);
+
+  // 0. Schreibrechte auf cwd prüfen
+  try { fs.accessSync(cwd, fs.constants.W_OK); }
+  catch {
+    fail(
+      `\n  ✗  ${cwd} ist nicht beschreibbar.\n` +
+      `     Setup als root:\n` +
+      `     mkdir -p ${cwd} && chown -R g-host:g-host ${cwd}\n`
+    );
+  }
+
+  // 1. Port (Default 3370, überschreibbar via --port=)
+  const infactoryPort = opts.port ? parseInt(opts.port, 10) : 3370;
+  info(`  Port:     ${infactoryPort}`);
+
+  // Port-Kollision (best effort; ss optional)
+  try {
+    const out = execSync('ss -ltn 2>/dev/null', { encoding: 'utf8' });
+    const blocked = out.split('\n').some(line => {
+      const m = line.match(/:(\d+)\s/);
+      return m && parseInt(m[1], 10) === infactoryPort;
+    });
+    if (blocked) {
+      fail(
+        `\n  ✗  Port ${infactoryPort} ist bereits belegt.\n` +
+        `     Blockierenden Prozess stoppen oder --port=<anderer-port> nutzen.\n`
+      );
+    }
+  } catch { /* ss nicht verfügbar → weiter */ }
+
+  // 2. API-Key: reuse aus /tmp/.infactory.api.key wenn 64-hex, sonst neu
+  const keyFile = '/tmp/.infactory.api.key';
+  let apiKey = null;
+  if (fs.existsSync(keyFile)) {
+    try {
+      const existing = fs.readFileSync(keyFile, 'utf8').trim();
+      if (/^[0-9a-f]{64}$/.test(existing)) {
+        apiKey = existing;
+        info(`  API-Key:  reuse ${keyFile} (${apiKey.substring(0, 8)}…)`);
+      } else {
+        info(`  API-Key:  ${keyFile} ist nicht 64-hex — ignoriere`);
+      }
+    } catch { /* unreadable → weiter */ }
+  }
+  if (!apiKey) {
+    apiKey = crypto.randomBytes(32).toString('hex');
+    try {
+      fs.writeFileSync(keyFile, apiKey + '\n', { mode: 0o600 });
+      info(`  API-Key:  neu → ${keyFile} (${apiKey.substring(0, 8)}…)`);
+    } catch (err) {
+      info(`  API-Key:  neu (${apiKey.substring(0, 8)}…) — ${keyFile} nicht schreibbar: ${err.message}`);
+    }
+  }
+
+  // 3. Subdomain-Autodetect: /var/www/*.<domain>/htdocs/ + /var/www/<domain>/htdocs/
+  const siteEntries = [];
+  try {
+    const wwwDirs = fs.readdirSync('/var/www', { withFileTypes: true })
+      .filter(e => e.isDirectory())
+      .map(e => e.name);
+    for (const name of wwwDirs) {
+      const isSubOfDomain = name.endsWith('.' + domain);
+      const isDomainItself = name === domain;
+      if (!isSubOfDomain && !isDomainItself) continue;
+      const htdocs = path.join('/var/www', name, 'htdocs');
+      if (!fs.existsSync(htdocs)) continue;
+      const slug = isDomainItself
+        ? 'root'
+        : name.slice(0, -(domain.length + 1)).replace(/\./g, '_');
+      siteEntries.push({ slug, webroot: htdocs + '/' });
+    }
+  } catch (err) {
+    fail(`\n  ✗  /var/www nicht lesbar: ${err.message}\n`);
+  }
+
+  if (siteEntries.length === 0) {
+    fail(
+      `\n  ✗  Keine WordOps-Sites für ${domain} gefunden.\n` +
+      `     Erwartet: /var/www/<sub>.${domain}/htdocs/\n` +
+      `     Prüfe:    ls -d /var/www/*.${domain}/htdocs/ 2>/dev/null\n`
+    );
+  }
+
+  const nginxSites = {};
+  for (const { slug, webroot } of siteEntries) {
+    nginxSites[slug] = { webroot };
+    info(`  Site:     ${slug.padEnd(10)} → ${webroot}`);
+  }
+
+  // 4. Globale venv/references-Verzeichnisse (install.sh)
+  const globalVenv = '/opt/infactory/venv';
+  const globalRefs = '/opt/infactory/references';
+  const hasVenv = fs.existsSync(path.join(globalVenv, 'bin', 'python3'));
+  const hasRefs = fs.existsSync(globalRefs);
+  info(`  Venv:     ${hasVenv ? globalVenv + ' ✔' : '(nicht gefunden, QA deaktiviert)'}`);
+  info(`  Refs:     ${hasRefs ? globalRefs + ' ✔' : '(nicht gefunden)'}`);
+
+  // 5. infactory.json schreiben (mode 0600)
+  const config = {
+    version: '1.2.0',
+    domain,
+    infactory_port: infactoryPort,
+    api_key: apiKey,
+    auto_sleep_minutes: 360,
+    ghost_url: '',
+    ghost_admin_key: '',
+    nginx_sites: nginxSites,
+    venv_path: hasVenv ? globalVenv : '',
+    references_path: hasRefs ? globalRefs : '',
+    installed_at: new Date().toISOString(),
+  };
+  const cfgPath = path.join(cwd, 'infactory.json');
+  fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+  info(`\n  ✔  ${cfgPath}`);
+
+  // 6. systemd-Service
+  const svcName = serviceName();
+  const svcFile = `/etc/systemd/system/${svcName}.service`;
+  const svcContent = `[Unit]
+Description=inFactory Server — Track B (${domain})
+After=network.target
+
+[Service]
+Type=simple
+User=g-host
+Group=g-host
+WorkingDirectory=${cwd}
+ExecStart=/usr/bin/node /opt/infactory/infactory-server/src/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=INFACTORY_CONFIG=${cfgPath}
+Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/infactory/browsers
+
+[Install]
+WantedBy=multi-user.target
+`;
+  const tmpSvc = path.join(cwd, `${svcName}.service`);
+  fs.writeFileSync(tmpSvc, svcContent, 'utf8');
+
+  info(`\n  systemd Setup (sudo) …`);
+  let svcInstalled = false;
+  try {
+    execSync(`sudo cp ${tmpSvc} ${svcFile}`, { stdio: 'inherit' });
+    execSync('sudo systemctl daemon-reload', { stdio: 'inherit' });
+    execSync(`sudo systemctl enable ${svcName}`, { stdio: 'inherit' });
+    info(`  ✔  ${svcName} enabled`);
+    svcInstalled = true;
+  } catch {
+    warn(`\n  ⚠  systemd Setup via sudo fehlgeschlagen. Manuell:`);
+    warn(`     sudo cp ${tmpSvc} ${svcFile}`);
+    warn(`     sudo systemctl daemon-reload`);
+    warn(`     sudo systemctl enable ${svcName}\n`);
+  }
+
+  // 7. ACL auf WordOps-Webroots (sudo, best-effort)
+  info(`\n  ACL setzen (sudo) …`);
+  for (const { slug, webroot } of siteEntries) {
+    const wr = webroot.replace(/\/$/, '');
+    try {
+      execSync(`sudo setfacl -R -m u:g-host:rwx ${wr}`,    { stdio: verbose ? 'inherit' : 'pipe' });
+      execSync(`sudo setfacl -R -d -m u:g-host:rwx ${wr}`, { stdio: verbose ? 'inherit' : 'pipe' });
+      info(`  ✔  ${slug}: ${wr}`);
+    } catch {
+      warn(`  ⚠  setfacl fehlgeschlagen für ${wr}. Manuell:`);
+      warn(`     sudo setfacl -R -m u:g-host:rwx ${wr}`);
+      warn(`     sudo setfacl -R -d -m u:g-host:rwx ${wr}`);
+    }
+  }
+
+  // 8. Service starten + Health-Check
+  if (svcInstalled) {
+    info(`\n  Service starten …`);
+    try {
+      execSync(`sudo systemctl start ${svcName}`, { stdio: 'inherit' });
+      execSync('sleep 1');
+      const state = execSync(`systemctl is-active ${svcName}`, { encoding: 'utf8' }).trim();
+      if (state === 'active') {
+        info(`  ✔  ${svcName} active`);
+      } else {
+        warn(`  ⚠  ${svcName} ist ${state} — journalctl -u ${svcName} -n 30`);
+      }
+    } catch {
+      warn(`  ⚠  Start fehlgeschlagen — journalctl -u ${svcName} -n 30`);
+    }
+
+    info(`\n  Health-Check …`);
+    try {
+      execSync(`curl -sf -o /dev/null http://localhost:${infactoryPort}/api/health`, { timeout: 5000 });
+      info(`  ✔  http://localhost:${infactoryPort}/api/health`);
+    } catch {
+      warn(`  ⚠  Health-Check fehlgeschlagen. Manuell: curl -v http://localhost:${infactoryPort}/api/health`);
+    }
+  }
+
+  // 9. Zusammenfassung
+  info(`\n  ═══════════════════════════════════════════════════`);
+  info(`  Track-B Installation abgeschlossen`);
+  info(`  ═══════════════════════════════════════════════════`);
+  info(`  Domain:   ${domain}`);
+  info(`  Config:   ${cfgPath}`);
+  info(`  Service:  ${svcName}`);
+  info(`  Port:     ${infactoryPort}`);
+  info(`  Sites:    ${siteEntries.map(s => s.slug).join(', ')}`);
+  info(`  API-Key:  ${keyFile} (0600)`);
+  info(``);
+  info(`  Nächste Schritte:`);
+  info(`    curl -s https://<sub>.${domain}/xed/api/health`);
+  info(`    curl -s https://<sub>.${domain}/xed/api/nginx/sites -H "X-API-Key: \$(cat ${keyFile})"`);
+  info(``);
 }
 
 // ─── start / stop / restart ───────────────────────────────────────────────────
