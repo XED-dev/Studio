@@ -3,14 +3,16 @@
  *
  * Befehle: install, start, stop, restart, status, update
  *
- * install() erkennt Track anhand cwd:
- *   - cwd unter /var/ghost/<domain>/  → Track A (Ghost Theme Factory, eingefroren)
- *     .infactory/ Verzeichnis, Port = Ghost-Port + 1000
- *   - cwd unter /var/xed/<tld>/       → Track B (LEMP Section-Renderer)
- *     infactory.json direkt in cwd, Port 3370 default, nginx_sites Allowlist,
+ * install() ist ein Dispatcher und erkennt Track anhand cwd:
+ *   - cwd unter /var/xed/<tld>/       → Track A (LEMP Section-Renderer, aktiv)
+ *     infactory.json direkt in cwd, Port 4368 default, nginx_sites Allowlist,
  *     zentraler Code in /opt/infactory/ (nicht kopiert)
+ *   - cwd unter /var/ghost/<domain>/  → Track B (Ghost Theme Factory, eingefroren)
+ *     .infactory/ Verzeichnis, Port = Ghost-Port + 1000
  *
- * Track A ist eingefroren — siehe docs/AGENTS.md Abschnitt 15 und 3.1
+ * Track B ist eingefroren — siehe dev/bin/XED-Studio/docs/WHITEPAPER.md §18.
+ * Historische Git-History bis Commit 7cff8a4 nutzt invertierte Labels
+ * (altes "Track A" = neues "Track B" und umgekehrt). Siehe WHITEPAPER.md §3.2.
  */
 
 'use strict';
@@ -63,8 +65,18 @@ function readGhostConfig() {
 
 /**
  * inFactory Config lesen.
+ *
+ * Track-A (cwd unter /var/xed/<tld>/): infactory.json liegt direkt im cwd.
+ * Track-B (Ghost-gekoppelt): infactory.json liegt unter .infactory/infactory.json.
  */
 function readConfig() {
+  // Track-A Dispatcher
+  if (path.dirname(process.cwd()) === '/var/xed') {
+    const p = path.join(process.cwd(), CONFIG_FILE);
+    if (!fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  }
+  // Track-B Default (Ghost-gekoppelt)
   const p = configPath();
   if (!fs.existsSync(p)) return null;
   return JSON.parse(fs.readFileSync(p, 'utf8'));
@@ -83,12 +95,23 @@ function serviceName() {
 // ─── install ──────────────────────────────────────────────────────────────────
 
 async function install(opts = {}) {
-  // Track-B Auto-Detect: cwd ist direktes Kind von /var/xed/
+  // Track-A Auto-Detect: cwd ist direktes Kind von /var/xed/
   // → kein Ghost-Kontext, nginx_sites Allowlist, zentraler Code in /opt/infactory/
   if (path.dirname(process.cwd()) === '/var/xed') {
-    return installTrackB(opts);
+    return installTrackA(opts);
   }
+  // Default: Track B (Ghost-gekoppelt, per-Instanz in /var/ghost/<domain>/.infactory/)
+  return installTrackB(opts);
+}
 
+// ─── installTrackB (Ghost-gekoppelte Theme-Fabrik, eingefroren) ──────────────
+//
+// Track B ist die ursprüngliche Ghost-Theme-Fabrik aus Sessions 1–17.
+// Ghost muss zuerst via `ghost install` in /var/ghost/<domain>/ existieren.
+// Dann installiert dieser Pfad den Code nach .infactory/server/ + .infactory/cli/.
+// Port = Ghost-Port + 1000. Eingefroren — siehe WHITEPAPER.md §18.3.
+
+async function installTrackB(opts = {}) {
   const { verbose = false } = opts;
   const info = (m) => console.log(m);
 
@@ -286,19 +309,20 @@ WantedBy=multi-user.target
   info(`  Status: infactory status\n`);
 }
 
-// ─── installTrackB (LEMP Section-Renderer) ──────────────────────────────────
+// ─── installTrackA (LEMP Section-Renderer, aktiver Fokus) ───────────────────
 //
-// Track B unterscheidet sich von Track A grundlegend:
+// Track A unterscheidet sich von Track B grundlegend:
 //   - cwd ist /var/xed/<tld>/ (nicht /var/ghost/<domain>/)
 //   - kein Ghost-Kontext, kein config.production.json
-//   - Code zentral in /opt/infactory/ (nicht kopiert pro Site wie Track A)
+//   - Code zentral in /opt/infactory/ (nicht kopiert pro Site wie Track B)
 //   - infactory.json direkt in cwd (nicht in .infactory/)
 //   - nginx_sites Allowlist für POST /xed/api/nginx/write
 //   - setfacl auf WordOps-Webroots
+//   - Port-Schema: 4368+1 pro TLD (Ghost-Default 2368 + 2000, konfliktfrei zu Track B)
 //
-// Siehe dev/bin/XED-Studio/docs/WHITEPAPER.md Abschnitt 13.6 + 21
+// Siehe dev/bin/XED-Studio/docs/WHITEPAPER.md §13.6 + §15.
 
-async function installTrackB(opts = {}) {
+async function installTrackA(opts = {}) {
   const { verbose = false } = opts;
   const info = (m) => console.log(m);
   const warn = (m) => console.warn(m);
@@ -307,7 +331,7 @@ async function installTrackB(opts = {}) {
   const cwd    = process.cwd();
   const domain = path.basename(cwd);
 
-  info('\n  inFactory Install — Track B (LEMP Section-Renderer)\n');
+  info('\n  inFactory Install — Track A (LEMP Section-Renderer)\n');
   info(`  Domain:   ${domain}`);
   info(`  Source:   ${cwd}`);
 
@@ -321,8 +345,9 @@ async function installTrackB(opts = {}) {
     );
   }
 
-  // 1. Port (Default 3370, überschreibbar via --port=)
-  const infactoryPort = opts.port ? parseInt(opts.port, 10) : 3370;
+  // 1. Port (Default 4368 — Ghost-Default 2368 + 2000, konfliktfrei zu Track B 3368+)
+  //    Überschreibbar via --port=, +1 pro weiterer TLD auf demselben Server.
+  const infactoryPort = opts.port ? parseInt(opts.port, 10) : 4368;
   info(`  Port:     ${infactoryPort}`);
 
   // Port-Kollision (best effort; ss optional)
@@ -429,7 +454,7 @@ async function installTrackB(opts = {}) {
   const svcName = serviceName();
   const svcFile = `/etc/systemd/system/${svcName}.service`;
   const svcContent = `[Unit]
-Description=inFactory Server — Track B (${domain})
+Description=inFactory Server — Track A (${domain})
 After=network.target
 
 [Service]
@@ -465,7 +490,7 @@ WantedBy=multi-user.target
 
   const finishContent = `#!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# Auto-generiert von 'infactory install' (Track B) — ${domain}
+# Auto-generiert von 'infactory install' (Track A) — ${domain}
 # ${new Date().toISOString()}
 #
 # Diese Operationen benoetigen root. Ausfuehren als:
@@ -507,7 +532,7 @@ fi
 
 echo ''
 echo '════════════════════════════════════════════════════'
-echo '  Track-B Finish abgeschlossen — ${domain}'
+echo '  Track-A Finish abgeschlossen — ${domain}'
 echo '════════════════════════════════════════════════════'
 
 # Selbstaufraeumung nach Erfolg
@@ -558,9 +583,9 @@ rm -f "$SVC_SRC" "${finishScript}"
   // 9. Zusammenfassung
   info(`\n  ═══════════════════════════════════════════════════`);
   if (finishOk) {
-    info(`  Track-B Installation abgeschlossen`);
+    info(`  Track-A Installation abgeschlossen`);
   } else {
-    info(`  Track-B Installation vorbereitet (root-Schritt ausstehend)`);
+    info(`  Track-A Installation vorbereitet (root-Schritt ausstehend)`);
   }
   info(`  ═══════════════════════════════════════════════════`);
   info(`  Domain:   ${domain}`);
