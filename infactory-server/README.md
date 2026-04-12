@@ -1,14 +1,23 @@
 # inFactory Server — Factory Floor Controller
 
-> Express REST API auf dem Ghost-Host. Gesteuert von AI Agents via API-Key.
+> Express REST API. Gesteuert von AI Agents via API-Key.
 > Teil von XED /Studio.
+
+> **Session 21 Update (2026-04-12) — Track-A/B-Labels geflippt.** Dieses README stammt aus der Session-16/17-Ära und wurde in Session 21 nur minimal auf Track-A-Defaults (**Port 4368** statt veraltetem 4368, Labels gespiegelt) aktualisiert. Vollständige und autoritative Architektur-Referenz: `dev/bin/XED-Studio/docs/WHITEPAPER.md` v1.6, insbesondere §13 (Target-Driver), §13.4 (`infactory.json`), §13.6 (Track-A Server-Topologie) und §18.3 (Track-B Server-Topologie, Ghost-gekoppelt).
+>
+> **Kurzform:**
+>
+> - **Track A** (aktiv seit Session 19) — `inFactory@ /Studio` LEMP Section-Renderer. Port 4368 + 1 pro TLD. Config `/var/xed/<tld>/infactory.json`. NGINX-Proxy `/xed/`. Zentraler Code in `/opt/infactory/`.
+> - **Track B** (eingefroren, Session 18 und früher) — `inFactory@ /Themes` Ghost-Theme-Fabrik. Port Ghost+1000 pro Ghost-Instanz. Config `/var/ghost/<domain>/.infactory/infactory.json`. NGINX-Proxy `/factory/`. Per-Instanz-Code in `.infactory/server/`.
+>
+> Die curl-Beispiele unten verwenden `localhost:4368` als Track-A-Default. Für Track-B-Kontext (Ghost-gekoppelt) ist der Port Ghost-Port + 1000.
 
 ## Architektur
 
 ```
 Developer Workstation                    LXC 025-CBU-5025
 ┌──────────────────┐                    ┌──────────────────────────────┐
-│ Claude Code      │   HTTPS + API-Key  │ inFactory Server (:3333)     │
+│ Claude Code      │   HTTPS + API-Key  │ inFactory Server (:4368)     │
 │ (AI Agent)       │ ──────────────────→│   ├── Theme Build + Deploy   │
 │                  │                    │   ├── Ghost Content CRUD     │
 │                  │                    │   ├── Image Upload/Migrate   │
@@ -104,7 +113,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/factory.steirischursprung.at/privkey.pem;
 
     location / {
-        proxy_pass http://127.0.0.1:3333;
+        proxy_pass http://127.0.0.1:4368;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_read_timeout 120s;
@@ -137,13 +146,13 @@ X-API-Key: <INFACTORY_API_KEY aus .env>
 ### Health
 
 ```bash
-curl http://localhost:3333/api/health
+curl http://localhost:4368/api/health
 ```
 
 ### Theme Build
 
 ```bash
-curl -X POST http://localhost:3333/api/theme/build \
+curl -X POST http://localhost:4368/api/theme/build \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{"preset": "steirischursprung"}'
@@ -152,7 +161,7 @@ curl -X POST http://localhost:3333/api/theme/build \
 ### Theme Deploy
 
 ```bash
-curl -X POST http://localhost:3333/api/theme/deploy \
+curl -X POST http://localhost:4368/api/theme/deploy \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{"preset": "steirischursprung", "site": "dev", "activate": true}'
@@ -161,14 +170,14 @@ curl -X POST http://localhost:3333/api/theme/deploy \
 ### Pages auflisten
 
 ```bash
-curl "http://localhost:3333/api/ghost/pages?site=dev&limit=50" \
+curl "http://localhost:4368/api/ghost/pages?site=dev&limit=50" \
   -H "X-API-Key: $KEY"
 ```
 
 ### Page erstellen
 
 ```bash
-curl -X POST http://localhost:3333/api/ghost/pages?site=dev \
+curl -X POST http://localhost:4368/api/ghost/pages?site=dev \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{"title": "Test", "slug": "test", "html": "<p>Hello</p>", "status": "draft"}'
@@ -177,7 +186,7 @@ curl -X POST http://localhost:3333/api/ghost/pages?site=dev \
 ### Bild hochladen (von URL)
 
 ```bash
-curl -X POST "http://localhost:3333/api/ghost/images/upload?site=dev" \
+curl -X POST "http://localhost:4368/api/ghost/images/upload?site=dev" \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://arv.steirischursprung.at/wp-content/uploads/2016/09/hotel.jpg"}'
@@ -187,13 +196,13 @@ curl -X POST "http://localhost:3333/api/ghost/images/upload?site=dev" \
 
 ```bash
 # Dry Run (nur analysieren):
-curl -X POST "http://localhost:3333/api/ghost/images/migrate?site=dev" \
+curl -X POST "http://localhost:4368/api/ghost/images/migrate?site=dev" \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{"slug": "hotel", "source": "archive", "dry_run": true}'
 
 # Echt migrieren:
-curl -X POST "http://localhost:3333/api/ghost/images/migrate?site=dev" \
+curl -X POST "http://localhost:4368/api/ghost/images/migrate?site=dev" \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{"slug": "hotel", "source": "archive"}'
@@ -202,7 +211,7 @@ curl -X POST "http://localhost:3333/api/ghost/images/migrate?site=dev" \
 ### Ghost Restart
 
 ```bash
-curl -X POST http://localhost:3333/api/system/restart \
+curl -X POST http://localhost:4368/api/system/restart \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{"site": "dev"}'
@@ -211,7 +220,7 @@ curl -X POST http://localhost:3333/api/system/restart \
 ### Ghost Status
 
 ```bash
-curl http://localhost:3333/api/system/status \
+curl http://localhost:4368/api/system/status \
   -H "X-API-Key: $KEY"
 ```
 
@@ -219,13 +228,13 @@ curl http://localhost:3333/api/system/status \
 
 ```bash
 # Liste
-curl http://localhost:3333/api/theme/presets -H "X-API-Key: $KEY"
+curl http://localhost:4368/api/theme/presets -H "X-API-Key: $KEY"
 
 # Laden
-curl http://localhost:3333/api/theme/presets/steirischursprung -H "X-API-Key: $KEY"
+curl http://localhost:4368/api/theme/presets/steirischursprung -H "X-API-Key: $KEY"
 
 # Speichern (YAML als raw String)
-curl -X PUT http://localhost:3333/api/theme/presets/steirischursprung \
+curl -X PUT http://localhost:4368/api/theme/presets/steirischursprung \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{"raw": "id: steirischursprung\nname: ..."}'
@@ -234,12 +243,12 @@ curl -X PUT http://localhost:3333/api/theme/presets/steirischursprung \
 ### Sections Registry
 
 ```bash
-curl http://localhost:3333/api/theme/sections -H "X-API-Key: $KEY"
+curl http://localhost:4368/api/theme/sections -H "X-API-Key: $KEY"
 ```
 
-### NGINX Static Target (Track B — Schritt A)
+### NGINX Static Target (Track A — Schritt A, LEMP Section-Renderer)
 
-Ab Server-Version 1.2 unterstützt der inFactory Server einen **NGINX-Static-Target-Driver**: er schreibt vom Server kompiliertes HTML/CSS/JS direkt in einen explizit konfigurierten NGINX-Webroot. Das ist der erste Baustein der `inFactory@ /Studio` Track-B-Architektur (siehe `dev/bin/XED-Studio/docs/WHITEPAPER.md`).
+Ab Server-Version 1.2 unterstützt der inFactory Server einen **NGINX-Static-Target-Driver**: er schreibt vom Server kompiliertes HTML/CSS/JS direkt in einen explizit konfigurierten NGINX-Webroot. Das ist der erste Baustein der `inFactory@ /Studio` **Track-A**-Architektur (aktiv, siehe `dev/bin/XED-Studio/docs/WHITEPAPER.md` v1.6 §13.2 NGINX-Target-Driver + §15.1 Schritt A). In Session 20 produktiv gesetzt auf `jam.steirischursprung.at`. Historie: Bis Session 20 trug dieser Pfad das alte Label „Track B" — siehe §3.2 Namens-Bridge.
 
 **Sicherheitsmodell:** Der Server schreibt **ausschließlich** in Webroots, die in der Server-Config explizit als Allowlist hinterlegt sind. Pfad-Traversal (`..`), absolute Pfade und Null-Bytes werden abgelehnt. Der normalisierte Zielpfad wird gegen den konfigurierten Webroot validiert.
 
@@ -247,7 +256,7 @@ Ab Server-Version 1.2 unterstützt der inFactory Server einen **NGINX-Static-Tar
 
 ```json
 {
-  "infactory_port": 3333,
+  "infactory_port": 4368,
   "api_key": "...",
   "nginx_sites": {
     "jam": { "webroot": "/var/www/jam.steirischursprung.at/htdocs/" }
@@ -260,14 +269,14 @@ Ab Server-Version 1.2 unterstützt der inFactory Server einen **NGINX-Static-Tar
 **Konfigurierte Sites auflisten:**
 
 ```bash
-curl http://localhost:3333/api/nginx/sites -H "X-API-Key: $KEY"
+curl http://localhost:4368/api/nginx/sites -H "X-API-Key: $KEY"
 # → { sites: { jam: { webroot, exists, writable } }, count: 1 }
 ```
 
 **Datei in einen Webroot schreiben:**
 
 ```bash
-curl -X POST http://localhost:3333/api/nginx/write \
+curl -X POST http://localhost:4368/api/nginx/write \
   -H "X-API-Key: $KEY" \
   -H "Content-Type: application/json" \
   -d '{
