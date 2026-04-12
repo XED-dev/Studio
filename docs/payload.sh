@@ -110,7 +110,7 @@ fi
 # Dummy DATABASE_URI fuer Build (wird zur Runtime ueberschrieben)
 export DATABASE_URI="${DATABASE_URI:-file:./data/payload.db}"
 
-pnpm build 2>/dev/null && ok "Next.js Build erfolgreich" || {
+pnpm build && ok "Next.js Build erfolgreich" || {
   err "Next.js Build fehlgeschlagen"
   echo "     Manuell: cd $INSTALL_DIR && pnpm build"
   echo "     Stellen Sie sicher dass PAYLOAD_SECRET gesetzt ist."
