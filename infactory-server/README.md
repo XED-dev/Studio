@@ -3,14 +3,18 @@
 > Express REST API. Gesteuert von AI Agents via API-Key.
 > Teil von XED /Studio.
 
-> **Session 21 Update (2026-04-12) — Track-A/B-Labels geflippt.** Dieses README stammt aus der Session-16/17-Ära und wurde in Session 21 nur minimal auf Track-A-Defaults (**Port 4368** statt veraltetem 4368, Labels gespiegelt) aktualisiert. Vollständige und autoritative Architektur-Referenz: `dev/bin/XED-Studio/docs/WHITEPAPER.md` v1.6, insbesondere §13 (Target-Driver), §13.4 (`infactory.json`), §13.6 (Track-A Server-Topologie) und §18.3 (Track-B Server-Topologie, Ghost-gekoppelt).
+> **Session 21 + Session 22 Port-Schema-Klarstellung (2026-04-12).** Dieses README stammt aus der Session-16/17-Ära und wurde nachträglich auf Track-A-Defaults (**Port 4368** statt veraltetem **3333**, Labels gespiegelt) aktualisiert. Vollständige und autoritative Architektur-Referenz: `dev/bin/XED-Studio/docs/WHITEPAPER.md` v1.6, insbesondere §13 (Target-Driver), §13.4 (`infactory.json`), §13.6 (Track-A Server-Topologie inkl. Vier-Zonen-Port-Schema) und §18.3 (Track-B Server-Topologie, Ghost-gekoppelt).
 >
-> **Kurzform:**
+> **Port-Schema in vier +1000er-Zonen:**
 >
-> - **Track A** (aktiv seit Session 19) — `inFactory@ /Studio` LEMP Section-Renderer. Port 4368 + 1 pro TLD. Config `/var/xed/<tld>/infactory.json`. NGINX-Proxy `/xed/`. Zentraler Code in `/opt/infactory/`.
-> - **Track B** (eingefroren, Session 18 und früher) — `inFactory@ /Themes` Ghost-Theme-Fabrik. Port Ghost+1000 pro Ghost-Instanz. Config `/var/ghost/<domain>/.infactory/infactory.json`. NGINX-Proxy `/factory/`. Per-Instanz-Code in `.infactory/server/`.
+> | Zone | Rolle | Pro |
+> |---|---|---|
+> | **2368+** | Ghost CMS | pro Ghost-Instanz (Default) |
+> | **3368+** | **Track B** inFactory Server — `inFactory@ /Themes` Ghost-Theme-Fabrik (eingefroren). Config `/var/ghost/<domain>/.infactory/infactory.json`. NGINX-Proxy `/factory/`. Per-Instanz-Code in `.infactory/server/`. | pro Ghost-Instanz = Ghost + 1000 |
+> | **4368+** | **Track A** inFactory Server — `inFactory@ /Studio` LEMP Section-Renderer (aktiv seit Session 19). Config `/var/xed/<tld>/infactory.json`. NGINX-Proxy `/xed/`. Zentraler Code in `/opt/infactory/`. | pro TLD = Ghost + 2000 |
+> | **5368+** | **Studio-Payload** Next.js Server (dd-starter Fork, Puck UI + Payload Admin, ab Schritt 1.2 §15.3). Eigenständiger systemd-Service neben dem Track-A inFactory-Server. | pro TLD = Track-A + 1000 |
 >
-> Die curl-Beispiele unten verwenden `localhost:4368` als Track-A-Default. Für Track-B-Kontext (Ghost-gekoppelt) ist der Port Ghost-Port + 1000.
+> Die curl-Beispiele unten verwenden `localhost:4368` als Track-A-Default.
 
 ## Architektur
 

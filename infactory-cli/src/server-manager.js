@@ -318,7 +318,13 @@ WantedBy=multi-user.target
 //   - infactory.json direkt in cwd (nicht in .infactory/)
 //   - nginx_sites Allowlist für POST /xed/api/nginx/write
 //   - setfacl auf WordOps-Webroots
-//   - Port-Schema: 4368+1 pro TLD (Ghost-Default 2368 + 2000, konfliktfrei zu Track B)
+//
+// Port-Schema in vier +1000er-Zonen (jede Rolle bekommt eine eigene 1000er-
+// Zone, jede Instanz/TLD +1 innerhalb der Zone):
+//   - 2368+  Ghost CMS                   (pro Ghost-Instanz, Default)
+//   - 3368+  Track B inFactory Server    (Ghost + 1000, pro Ghost-Instanz)
+//   - 4368+  Track A inFactory Server    (Ghost + 2000, pro TLD)   ← diese Funktion
+//   - 5368+  Studio-Payload Next.js      (Track-A + 1000, pro TLD, ab Schritt 1.2)
 //
 // Siehe dev/bin/XED-Studio/docs/WHITEPAPER.md §13.6 + §15.
 
