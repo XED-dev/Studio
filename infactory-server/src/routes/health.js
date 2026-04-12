@@ -8,6 +8,7 @@
 
 const express = require('express');
 const config  = require('../config');
+const pkg     = require('../../package.json');
 const { GhostClient } = require('../ghost-client');
 
 const router = express.Router();
@@ -15,20 +16,24 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   const status = {
     server: {
-      version: '1.0.0',
+      version: pkg.version,
       uptime:  Math.floor(process.uptime()),
       node:    process.version,
     },
     sites: {},
-    cli: {
-      path:   config.cliPath,
-      exists: require('fs').existsSync(config.cliPath),
-    },
     imageArchive: {
       path:   config.imageArchivePath || '(nicht konfiguriert)',
       exists: config.imageArchivePath ? require('fs').existsSync(config.imageArchivePath) : false,
     },
   };
+
+  // cli-Block nur bei Track B (config.cliPath ist bei Track A null)
+  if (config.cliPath) {
+    status.cli = {
+      path:   config.cliPath,
+      exists: require('fs').existsSync(config.cliPath),
+    };
+  }
 
   // Ghost Sites pingen
   for (const [name, site] of Object.entries(config.sites)) {

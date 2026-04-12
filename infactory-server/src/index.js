@@ -78,13 +78,13 @@ const server = app.listen(config.port, () => {
     : '(keine — nginx_sites in infactory.json setzen)';
 
   console.log(`
-  inFactory Server v1.2
+  inFactory Server v${require('../package.json').version}
   ${config.domain || 'Factory Floor Controller'}
 
   Port:        ${config.port}
   Ghost:       ${sites}
   NGINX:       ${nginxSummary}
-  CLI:         ${config.cliPath}
+  CLI:         ${config.cliPath || '(Track A — kein CLI-Pfad)'}
   Auto-Sleep:  ${config.autoSleepMinutes} min
   Config:      ${config.configPath || '.env (Legacy)'}
 

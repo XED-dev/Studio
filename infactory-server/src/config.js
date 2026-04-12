@@ -24,24 +24,32 @@ const configPath     = configFromEnv || (fs.existsSync(configFromCwd) ? configFr
 
 if (configPath && fs.existsSync(configPath)) {
   const raw = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  const ghostDir    = path.dirname(path.dirname(configPath)); // .infactory/ → Ghost-Dir
-  const contentPath = raw.content_path || path.join(ghostDir, 'content');
+
+  // Track-Detection: Wenn ghost_url UND ghost_admin_key beide leer sind,
+  // ist dies eine Track-A-Installation (LEMP ohne Ghost-Kopplung).
+  // ghostDir/contentPath/cliPath sind dann null und sites.local wird nicht
+  // angelegt — dadurch pingt /api/health auch keinen Phantom-Ghost.
+  const isTrackA = !raw.ghost_url && !raw.ghost_admin_key;
+
+  const ghostDir    = isTrackA ? null : path.dirname(path.dirname(configPath));
+  const contentPath = isTrackA ? null : (raw.content_path || path.join(ghostDir, 'content'));
+  const cliPath     = isTrackA ? null : path.join(path.dirname(configPath), 'cli');
 
   config = {
     port:     raw.infactory_port || 3333,
     apiKey:   raw.api_key || '',
-    cliPath:  path.join(path.dirname(configPath), 'cli'),
+    cliPath:  cliPath,
     autoSleepMinutes: raw.auto_sleep_minutes || 360,
 
-    sites: {
+    sites: isTrackA ? {} : {
       local: {
-        url:         raw.ghost_url || `http://localhost:${raw.ghost_port || 2368}`,
-        key:         raw.ghost_admin_key || '',
+        url:         raw.ghost_url,
+        key:         raw.ghost_admin_key,
         contentPath: contentPath,
       },
     },
 
-    // NGINX-Target Allowlist (Track B) — explizit konfigurierte Webroots in
+    // NGINX-Target Allowlist (Track A) — explizit konfigurierte Webroots in
     // die der inFactory Server statisches HTML/CSS/JS schreiben darf.
     // Format: { "<site>": { "webroot": "/var/www/.../htdocs/" } }
     nginxSites: (raw.nginx_sites && typeof raw.nginx_sites === 'object') ? raw.nginx_sites : {},
@@ -129,8 +137,8 @@ if (!config.apiKey) {
   process.exit(1);
 }
 
-if (Object.keys(config.sites).length === 0) {
-  console.warn('\n  WARNUNG: Keine Ghost-Sites konfiguriert.\n');
+if (Object.keys(config.sites).length === 0 && Object.keys(config.nginxSites).length === 0) {
+  console.warn('\n  WARNUNG: Weder Ghost-Sites noch NGINX-Sites konfiguriert.\n');
 }
 
 module.exports = config;
