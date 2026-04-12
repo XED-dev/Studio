@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const { ghostRequest } = require('./src/ghost-api');
+const { htmlToLexical } = require('./src/html-to-lexical');
 
 const GHOST_URL = process.env.INFACTORY_GHOST_URL;
 const GHOST_KEY = process.env.INFACTORY_GHOST_KEY;
@@ -94,14 +95,7 @@ function resolveImageUrl(imgPath) {
   return ARV_BASE + imgPath;
 }
 
-function toLexical(html) {
-  return JSON.stringify({
-    root: {
-      children: [{ type: 'html', version: 1, html }],
-      direction: null, format: '', indent: 0, type: 'root', version: 1
-    }
-  });
-}
+// toLexical() replaced by htmlToLexical() from ./src/html-to-lexical.js
 
 async function createPage(pageConfig) {
   const extractDir = '/tmp/arv-extract';
@@ -116,7 +110,7 @@ async function createPage(pageConfig) {
   const title = pageConfig.title || data.title;
   const featureImage = resolveImageUrl(data.headerImage);
   const contentHtml = buildContentHtml(data);
-  const lexical = toLexical(contentHtml);
+  const { lexical } = htmlToLexical(contentHtml);
 
   console.log(`\n  📄 ${pageConfig.slug}`);
   console.log(`     Title: ${title}`);

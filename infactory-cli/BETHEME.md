@@ -431,26 +431,74 @@ infactory qa batch --source-base=https://arv.steirischursprung.at --target-base=
 
 ---
 
-## OFFENE PUNKTE für Session 17
+## Session 17 — Erledigt (2026-04-09)
 
-### 1. Content-Struktur (HÖCHSTE PRIORITÄT — der Weg zu 99%)
+### ✔ Server-Autonomie v1.1 — KOMPLETT
 
-Das Kernproblem: Ghost-Pages haben flachen Content, Original hat strukturierte Sections.
-- Source hat 26 Sections, Target hat 12
-- Source hat Grid-Layouts (3-Spalten Feature Cards), Target hat keine
-- Seitenhöhe +35% weil alles untereinander statt nebeneinander
-- Content-Länge: 16.332 vs 7.571 Zeichen — Content beim Import verloren
+Der inFactory Server ist jetzt ein selbstaendiger Factory Floor Controller:
+- **7 neue Endpunkte** (24 gesamt): QA compare/batch/structure, upgrade-lexical, images audit/list, references
+- **Python venv** auf Server: `/opt/infactory/venv/` (shot-scraper, crawl4ai)
+- **Playwright Browser**: `/opt/infactory/browsers/` (PLAYWRIGHT_BROWSERS_PATH)
+- **Referenz-Bibliothek**: `/opt/infactory/references/` (20 MIT-Themes auto, Themex via import-references)
+- **Pixel-Diff**: pixelmatch (reines JS, weil odiff-bin GLIBC 2.38+ braucht, Server hat 2.36)
+- **Nginx Proxy**: `https://dev.steirischursprung.at/factory/api/...`
 
-**Tiefe Analyse nötig:**
-- Wie kann die Section Library die BeTheme-Strukturen abbilden?
-- Wie wird flaches Lexical JSON in Section-basiertes Ghost Content umgewandelt?
-- Welche Section-Types brauchen wir konkret für feiern-geniessen?
-  - Hero Image + Overlay Text
-  - 3-Spalten Feature Cards mit Tier-Illustrationen
-  - Venue Grid (6 Säle mit Bildern + Preisen)
-  - CTA-Bar
+### ✔ 6 neue Sections (34 gesamt)
 
-### 2. CSS-Kalibrierung (erst wenn Struktur > 80%)
+| Section | Tag | Zweck |
+|---|---|---|
+| `hero_image` | — (feature_image) | Vollbild mit Separator |
+| `title_bar` | — (page title) | Beige Banner mit H1 + Subtitle |
+| `venue_grid` | `#venue` | Raeumlichkeiten (2-3 Spalten, Kapazitaet) |
+| `icon_cards` | `#icon-card` | Illustrationen mit Text |
+| `video_embed` | `#video` | YouTube/Vimeo (dark bg) |
+| `capacity_badge` | `#capacity-badge` | Goldene Kreise mit Zahlen |
+
+### ✔ 6 Venue Pages angelegt
+
+Kristallzimmer, Wabensaal, Heustadl, Rittersaal, Bienenstock, Braustube — alle mit `#venue` Tag und Kapazitaet im custom_excerpt.
+
+### ✔ Theme Build + Deploy
+
+46.3 KB Theme deployed und aktiviert auf dev.steirischursprung.at.
+
+### ✔ QA mit allen 3 Sensoren auf Server
+
+GESAMT: 44% (Struktur 57%, Pixel 40.2%, CSS 30%) — gemessen ueber Server-API.
+
+### ✔ docs/README.md
+
+Vollstaendige User-Dokumentation auf studio.xed.dev (DevOps, Designer, Texter, Freelancer).
+
+### Erfahrungen aus Session 17
+
+1. **Ghost URL in infactory.json** MUSS `https://` sein, nicht `http://localhost:`. Ghost redirected auf seine konfigurierte URL → 301.
+2. **Nginx trailing slash** bei BEIDEN: `location /factory/` + `proxy_pass .../` — sonst kein prefix stripping.
+3. **Site-Parameter**: `?site=local` (nicht `dev`) bei Produktiv-Config.
+4. **PLAYWRIGHT_BROWSERS_PATH**: install.sh als root installiert nach /root/.cache/. Server laeuft als g-host. Loesung: gemeinsamer Pfad /opt/infactory/browsers/.
+5. **odiff-bin (Zig)** braucht GLIBC 2.38+, Debian 12 Bookworm hat 2.36. pixelmatch als JS-Fallback. Honeydiff (Rust) evaluieren.
+6. **npm --production** ist deprecated → `--omit=dev`.
+7. **Fixes immer ueber studio.xed.dev Workflow** deployen, nie manuell auf dem Server.
+
+---
+
+## OFFENE PUNKTE fuer Session 18
+
+### 1. Honeydiff evaluieren (Pixel-Diff Upgrade)
+
+pixelmatch (JS) liefert nur diffCount. Honeydiff (Rust, npm: @vizzly-testing/honeydiff) bietet:
+- Spatial Clustering (verschobene Bloecke erkennen)
+- SSIM (strukturelle Aehnlichkeit)
+- Bounding Boxes + JSON-Report
+- 9-16x schneller als ODiff
+Pruefen ob die Rust-Binary auf Debian 12 (GLIBC 2.36) laeuft.
+
+### 2. Content-Struktur (HAUPTBLOCKER fuer Score > 80%)
+
+Venue-Pages brauchen Feature Images (aus Archiv migrieren).
+Weitere Content-Pages mit Tags: #icon-card, #video, #capacity-badge.
+
+### 3. CSS-Kalibrierung (erst wenn Struktur > 80%)
 
 | Property | Original | Ghost | Fix |
 |---|---|---|---|
@@ -458,31 +506,12 @@ Das Kernproblem: Ghost-Pages haben flachen Content, Original hat strukturierte S
 | H2 fontSize | 45px | 28.8px | `font-size: 45px` |
 | H3 fontSize | 30px | 24px | `font-size: 30px` |
 | Heading fontWeight | 400 | 600 | `font-weight: 400` |
-| Body/P color | `#2c2930` | `#554030` | Token stimmt, wird überschrieben |
 | P lineHeight | 25px (1.39) | 29.92px (1.7) | `line-height: 1.4` |
-
-### 3. SERVER-AUTONOMIE (KRITISCH — dev.steirischursprung.at ist UNVERÄNDERT)
-
-Session 16 hat Werkzeuge gebaut (QA, Images, Lexical), aber ALLES steckt NUR in der
-lokalen CLI. Der inFactory Server (025-CBU-5025:3369) hat NICHTS davon.
-`infactory update` holt nur cli/ + server/ von GitHub — KEINE Referenz-Themes, KEINE Tools.
-
-**Server braucht:**
-- QA-Endpunkte: POST /api/qa/compare, /api/qa/batch, /api/qa/structure
-- Lexical-Upgrade: POST /api/ghost/pages/upgrade-lexical
-- Image audit+list Endpunkte
-- Python-Tools auf LXC (shot-scraper, crawl4ai, Playwright venv)
-- Referenz-Themes zugänglich (Design-Entscheidung: im Repo? Separater Fetch?)
-- odiff-bin + pngjs in server/package.json
-
-**Design-Prinzip:** Der AI Agent ist der ARCHITEKT, der Server ist die FABRIK.
-Die Fabrik muss alle Werkzeuge und Materialien SELBST haben.
 
 ### 4. Plugin-System / Add-on Architektur
 
-Plugin-System bei dem man bei Bedarf Funktionalitäten wie
-"XED /Restore" oder "Content-Extraktion" (Quelle-A vs Ziel-B) einbinden kann.
-crawl4ai ist die Engine dafür.
+Plugin-System fuer "XED /Restore" oder "Content-Extraktion" (Quelle-A vs Ziel-B).
+crawl4ai ist die Engine dafuer.
 
 ### 5. Fehlende Seiten
 
@@ -491,8 +520,8 @@ crawl4ai ist die Engine dafür.
 
 ### 6. Mobile-Optimierung
 
-- Hamburger-Menü mit Dropdowns testen
-- Logo-Größe Mobile (60px)
+- Hamburger-Menue mit Dropdowns testen
+- Logo-Groesse Mobile (60px)
 - Footer responsive
 
 ---
