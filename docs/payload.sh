@@ -96,10 +96,10 @@ fi
 
 # ─── Build ───────────────────────────────────────────────────────────────────
 
-info "Next.js Build..."
+info "Build vorbereiten..."
 cd "$INSTALL_DIR"
 
-# Build braucht PAYLOAD_SECRET — generiere falls nicht in Umgebung
+# Secrets generieren falls nicht in Umgebung
 if [ -z "${PAYLOAD_SECRET:-}" ]; then
   export PAYLOAD_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
 fi
@@ -107,9 +107,18 @@ if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
   export BETTER_AUTH_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
 fi
 
-# Dummy DATABASE_URI fuer Build (wird zur Runtime ueberschrieben)
+# DATABASE_URI (wird zur Runtime ueberschrieben via systemd Environment)
 export DATABASE_URI="${DATABASE_URI:-file:./data/payload.db}"
+mkdir -p data
 
+# Payload Migrations ausfuehren (erstellt DB-Tabellen)
+info "Payload Migrations..."
+pnpm payload migrate && ok "Migrations erfolgreich" || {
+  err "Payload Migrations fehlgeschlagen"
+  echo "     Manuell: cd $INSTALL_DIR && pnpm payload migrate"
+}
+
+info "Next.js Build..."
 pnpm build && ok "Next.js Build erfolgreich" || {
   err "Next.js Build fehlgeschlagen"
   echo "     Manuell: cd $INSTALL_DIR && pnpm build"
