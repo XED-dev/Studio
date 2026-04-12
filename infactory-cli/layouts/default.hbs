@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page.title}}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 2rem; background: #f8f7f4; color: #1a1a1a; }
+    .g_section { container-type: inline-size; container-name: section; }
+    .g_grid { display: grid; grid-template-columns: repeat(var(--g-cols, 12), 1fr); gap: 1.5rem; }
+    .g_col-7 { grid-column: span 7; }
+    .g_col-5 { grid-column: span 5; }
+    @container section (max-width: 640px) { .g_col-7, .g_col-5 { grid-column: 1 / -1; } }
+    h1 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(2rem, 4vw, 3.5rem); }
+    .badge { display: inline-block; padding: 0.25em 0.75em; background: #006633; color: white; border-radius: 0.25em; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+{{{body}}}
+</body>
+</html>

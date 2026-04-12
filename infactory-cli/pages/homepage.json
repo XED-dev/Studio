@@ -1,0 +1,16 @@
+{
+  "slug": "homepage",
+  "title": "jam.steirischursprung.at — inFactory Track B Proof",
+  "layout": "default",
+  "sections": [
+    {
+      "section_id": "s_hero_split",
+      "zones": {
+        "eyebrow":  { "value": "inFactory@ /Studio · Track B · Schritt A" },
+        "headline": { "value": "LEMP-JAMstack Proof of Life" },
+        "subline":  { "value": "Diese Seite wurde vom inFactory Server via <code>POST /xed/api/nginx/write</code> in <code>/var/www/jam.steirischursprung.at/htdocs/index.html</code> geschrieben." },
+        "image_gradient": { "from": "#006633", "to": "#ba8d1a" }
+      }
+    }
+  ]
+}

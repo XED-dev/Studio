@@ -1,0 +1,39 @@
+id: s_hero_split
+title: "Hero: Split Layout"
+category: hero
+description: "Zweispaltige Hero-Section (Content links 7 Spalten, Visual rechts 5)"
+version: "1.0"
+
+# CSS Subgrid Konfiguration (minimal für Schritt A.1 — Details in Schritt 2)
+grid:
+  columns: 12
+  rows: auto
+
+# Zone-Definitionen — die editierbaren Felder
+zones:
+  eyebrow:
+    type: text
+    label: "Eyebrow / Badge"
+    max_length: 80
+    role: designer+editor
+
+  headline:
+    type: text
+    label: "Hauptüberschrift"
+    max_length: 100
+    required: true
+    role: editor+ai
+    html_tag: h1
+
+  subline:
+    type: html
+    label: "Subzeile (HTML erlaubt, wird via triple-stash durchgereicht)"
+    role: editor+ai
+
+  image_gradient:
+    type: gradient_block
+    label: "Visual-Placeholder (Gradient bis echter Bild-Support in Schritt C)"
+    fields:
+      from: { type: color }
+      to:   { type: color }
+    role: designer

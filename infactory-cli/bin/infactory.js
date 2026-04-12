@@ -123,6 +123,22 @@ async function run() {
       break;
     }
 
+    // ── compile (Track A) ────────────────────────────────────────────────────
+    case 'compile': {
+      const slug = args[1];
+      if (!slug) { console.error('\n  ✗  Usage: infactory compile <slug>'); process.exit(1); }
+      const { compilePage } = require('../src/compile');
+      try {
+        const html    = await compilePage(slug, { cwd });
+        const outDir  = path.join(cwd, 'dist', slug);
+        fs.mkdirSync(outDir, { recursive: true });
+        const outFile = path.join(outDir, 'index.html');
+        fs.writeFileSync(outFile, html, 'utf8');
+        console.log(`  ✔  Compiled: ${outFile} (${Buffer.byteLength(html)} bytes)`);
+      } catch (err) { console.error(`\n  ✗  ${err.message}`); process.exit(1); }
+      break;
+    }
+
     // ── preview ──────────────────────────────────────────────────────────────
     case 'preview': {
       const preset = resolveOpt('preset', 'preset', null);
