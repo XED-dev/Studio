@@ -368,8 +368,11 @@ cmd_install() {
       chmod 775 "$SITE_BASE/$d"
       local DB_UP="$SITE_BASE/$d/payload.db"
       if [ -f "$DB_UP" ]; then
-        chown g-host:g-host "$DB_UP" "${DB_UP}-wal" "${DB_UP}-shm" 2>/dev/null
-        chmod 664 "$DB_UP" "${DB_UP}-wal" "${DB_UP}-shm" 2>/dev/null
+        chown g-host:g-host "$DB_UP"
+        chmod 664 "$DB_UP"
+        for ext in -wal -shm; do
+          [ -f "${DB_UP}${ext}" ] && chown g-host:g-host "${DB_UP}${ext}" && chmod 664 "${DB_UP}${ext}"
+        done
       fi
       migrated=$((migrated + 1))
     fi
