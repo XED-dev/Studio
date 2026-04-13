@@ -141,7 +141,7 @@ if [ "${1:-}" = "setup" ]; then
     dn=$(basename "$(dirname "$wwwdir")")
     if [ "$dn" = "$TLD" ]; then sl="root"; else sl=$(echo "$dn" | sed "s/\\.${TLD}$//;s/\\./_/g"); fi
     ok "Site: $sl → $wwwdir/"
-    ((SITE_COUNT++))
+    SITE_COUNT=$((SITE_COUNT + 1))
   done
 
   if [ "$SITE_COUNT" -eq 0 ]; then
@@ -168,7 +168,7 @@ if [ "${1:-}" = "setup" ]; then
     [ "$SITES_IDX" -gt 0 ] && SITES_JSON="${SITES_JSON},"
     SITES_JSON="${SITES_JSON}
     \"${sl}\": { \"webroot\": \"${wwwdir}/\" }"
-    ((SITES_IDX++))
+    SITES_IDX=$((SITES_IDX + 1))
   done
   SITES_JSON="${SITES_JSON}
   }"
@@ -460,12 +460,12 @@ for theme in "${MIT_THEMES[@]}"; do
   name=$(basename "$theme")
   dir="$REFERENCES_DIR/mit/$name"
   if [ -d "$dir/.git" ]; then
-    git -C "$dir" pull --ff-only --quiet 2>/dev/null && ((UPDATED++)) || true
+    git -C "$dir" pull --ff-only --quiet 2>/dev/null && UPDATED=$((UPDATED + 1)) || true
   else
     if git clone --depth 1 --quiet "https://github.com/$theme.git" "$dir" 2>/dev/null; then
-      ((CLONED++))
+      CLONED=$((CLONED + 1))
     else
-      ((SKIPPED++))
+      SKIPPED=$((SKIPPED + 1))
       [ -d "$dir" ] && rm -rf "$dir"  # Leere Verzeichnisse aufräumen
     fi
   fi
@@ -518,7 +518,7 @@ for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
   sleep 1
   if systemctl is-active --quiet "$svc" 2>/dev/null; then
     ok "$svc laeuft"
-    ((RESTARTED++))
+    RESTARTED=$((RESTARTED + 1))
   else
     warn "$svc Start fehlgeschlagen — journalctl -u $svc -n 20"
   fi

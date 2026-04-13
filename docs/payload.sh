@@ -72,7 +72,7 @@ tld_to_port() {
   for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
     if [ -f "$SITE_BASE/$d/studio-payload.env" ]; then
       if [ "$d" = "$1" ]; then echo $((PORT_BASE + idx)); return; fi
-      ((idx++))
+      idx=$((idx + 1))
     fi
   done
   # Neue TLD: naechster freier Port
@@ -234,7 +234,7 @@ cmd_status() {
       local status="stopped"
       systemctl is-active --quiet "$svc" 2>/dev/null && status="${GREEN}running${NC}" || status="${RED}stopped${NC}"
       echo -e "  $d  Port $port  [$status]  $svc"
-      ((found++))
+      found=$((found + 1))
     fi
   done
 
@@ -310,7 +310,7 @@ cmd_install() {
       cd "$INSTALL_DIR"
       set -a; source "$SITE_BASE/$d/studio-payload.env"; set +a
       pnpm payload migrate 2>/dev/null && ok "Migrate $d erfolgreich" || warn "Migrate $d fehlgeschlagen"
-      ((migrated++))
+      migrated=$((migrated + 1))
     fi
   done
 
@@ -381,7 +381,7 @@ cmd_install() {
       local status="stopped"
       systemctl is-active --quiet "$svc" 2>/dev/null && status="${GREEN}active${NC}" || status="${YELLOW}stopped${NC}"
       echo -e "  ${BOLD}$d${NC}  Port $port  [$status]"
-      ((found++))
+      found=$((found + 1))
     fi
   done
 

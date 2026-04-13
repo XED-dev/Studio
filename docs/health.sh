@@ -105,14 +105,14 @@ check_infactory_service() {
     ok "$svc (Port $port) — active"
   else
     err "$svc (Port $port) — DOWN"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
     if [ "$AUTO_FIX" = "fix" ]; then
       info "Restart: $svc..."
       systemctl restart "$svc" 2>/dev/null
       sleep 2
       if systemctl is-active --quiet "$svc" 2>/dev/null; then
         ok "$svc neugestartet"
-        ((FIXES++))
+        FIXES=$((FIXES + 1))
       else
         err "$svc Restart fehlgeschlagen — journalctl -u $svc -n 20"
       fi
@@ -145,14 +145,14 @@ check_payload_service() {
     ok "$svc (Port $port) — active"
   else
     err "$svc (Port $port) — DOWN"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
     if [ "$AUTO_FIX" = "fix" ]; then
       info "Restart: $svc..."
       systemctl restart "$svc" 2>/dev/null
       sleep 3
       if systemctl is-active --quiet "$svc" 2>/dev/null; then
         ok "$svc neugestartet"
-        ((FIXES++))
+        FIXES=$((FIXES + 1))
       else
         err "$svc Restart fehlgeschlagen — journalctl -u $svc -n 20"
       fi
@@ -178,14 +178,14 @@ check_nginx() {
     ok "nginx — active"
   else
     err "nginx — DOWN"
-    ((ERRORS++))
+    ERRORS=$((ERRORS + 1))
     if [ "$AUTO_FIX" = "fix" ]; then
       info "Restart: nginx..."
       systemctl restart nginx 2>/dev/null
       sleep 1
       if systemctl is-active --quiet nginx 2>/dev/null; then
         ok "nginx neugestartet"
-        ((FIXES++))
+        FIXES=$((FIXES + 1))
       else
         err "nginx Restart fehlgeschlagen"
       fi
