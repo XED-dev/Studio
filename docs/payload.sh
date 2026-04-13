@@ -210,7 +210,7 @@ UNIT
   fi
 
   # ── NGINX Locations-Include generieren ──
-  local LOCATIONS_CONF="/etc/nginx/proxy/studio-payload-locations-${PORT}.conf"
+  local LOCATIONS_CONF="/etc/nginx/proxy/payload.conf"
   info "NGINX Locations-Include: $LOCATIONS_CONF..."
   if [ -f "$INSTALL_DIR/infactory-server/nginx/studio-payload-locations.conf" ]; then
     sed "s/{{PORT}}/$PORT/g" "$INSTALL_DIR/infactory-server/nginx/studio-payload-locations.conf" > "$LOCATIONS_CONF"
