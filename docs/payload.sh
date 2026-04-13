@@ -320,6 +320,29 @@ cmd_install() {
     ok "Dependencies installiert"
   fi
 
+  # ── Fehlende Env-Vars in bestehenden Sites ergaenzen ──
+  for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
+    local ENV_PATCH="$SITE_BASE/$d/studio-payload.env"
+    if [ -f "$ENV_PATCH" ]; then
+      local patched=0
+      if ! grep -q 'NEXT_PUBLIC_BASE_PATH' "$ENV_PATCH"; then
+        echo 'NEXT_PUBLIC_BASE_PATH=/studio' >> "$ENV_PATCH"
+        patched=$((patched + 1))
+      fi
+      if ! grep -q 'NEXT_PUBLIC_SERVER_URL' "$ENV_PATCH"; then
+        echo "NEXT_PUBLIC_SERVER_URL=https://jam.$d/studio" >> "$ENV_PATCH"
+        patched=$((patched + 1))
+      fi
+      if ! grep -q 'BETTER_AUTH_URL' "$ENV_PATCH"; then
+        echo "BETTER_AUTH_URL=https://jam.$d/studio" >> "$ENV_PATCH"
+        patched=$((patched + 1))
+      fi
+      if [ "$patched" -gt 0 ]; then
+        ok "$d: $patched fehlende Env-Var(s) ergaenzt"
+      fi
+    fi
+  done
+
   # ── Migrate alle bestehenden Sites ──
   local migrated=0
   for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
