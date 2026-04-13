@@ -112,6 +112,23 @@ cmd_setup() {
   # ── Secrets (nur bei Erstinstallation) ──
   if [ -f "$ENV_FILE" ]; then
     ok "Secrets existieren bereits: $ENV_FILE (nicht ueberschrieben)"
+    # Fehlende Nicht-Secret-Vars ergaenzen (ohne bestehende Werte zu ueberschreiben)
+    local patched=0
+    if ! grep -q 'NEXT_PUBLIC_BASE_PATH' "$ENV_FILE"; then
+      echo 'NEXT_PUBLIC_BASE_PATH=/studio' >> "$ENV_FILE"
+      patched=$((patched + 1))
+    fi
+    if ! grep -q 'NEXT_PUBLIC_SERVER_URL' "$ENV_FILE"; then
+      echo "NEXT_PUBLIC_SERVER_URL=https://jam.$TLD/studio" >> "$ENV_FILE"
+      patched=$((patched + 1))
+    fi
+    if ! grep -q 'BETTER_AUTH_URL' "$ENV_FILE"; then
+      echo "BETTER_AUTH_URL=https://jam.$TLD/studio" >> "$ENV_FILE"
+      patched=$((patched + 1))
+    fi
+    if [ "$patched" -gt 0 ]; then
+      ok "$patched fehlende Env-Var(s) ergaenzt in $ENV_FILE"
+    fi
   else
     info "Generiere Secrets..."
     node -e "
