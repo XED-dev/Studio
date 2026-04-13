@@ -142,11 +142,8 @@ require('fs').writeFileSync('$ENV_FILE', lines.join('\\n') + '\\n');
 
   # ── systemd Service ──
   local SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-  if [ -f "$SERVICE_FILE" ]; then
-    ok "Service existiert bereits: $SERVICE_FILE"
-  else
-    info "Erstelle systemd Service auf Port $PORT..."
-    cat > "$SERVICE_FILE" << UNIT
+  info "Schreibe systemd Service auf Port $PORT..."
+  cat > "$SERVICE_FILE" << UNIT
 [Unit]
 Description=Studio-Payload — Puck Editor ($TLD)
 After=network.target
@@ -157,7 +154,7 @@ User=g-host
 Group=g-host
 WorkingDirectory=$INSTALL_DIR
 EnvironmentFile=$ENV_FILE
-ExecStart=/usr/bin/node $INSTALL_DIR/node_modules/.bin/next start -p $PORT
+ExecStart=/usr/bin/node $INSTALL_DIR/node_modules/next/dist/bin/next start -p $PORT
 Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production
@@ -165,10 +162,9 @@ Environment=NODE_ENV=production
 [Install]
 WantedBy=multi-user.target
 UNIT
-    systemctl daemon-reload
-    systemctl enable "$SERVICE_NAME" 2>/dev/null
-    ok "Service erstellt: $SERVICE_NAME (Port $PORT)"
-  fi
+  systemctl daemon-reload
+  systemctl enable "$SERVICE_NAME" 2>/dev/null
+  ok "Service geschrieben: $SERVICE_NAME (Port $PORT)"
 
   # ── Service starten ──
   info "Starte $SERVICE_NAME..."
