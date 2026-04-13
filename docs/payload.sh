@@ -477,13 +477,12 @@ cmd_install() {
 cmd_create_admin() {
   local TLD="$1"
   local EMAIL="$2"
-  local PASSWORD="$3"
-  local NAME="${4:-Admin}"
   local SITE_DIR="$SITE_BASE/$TLD"
   local ENV_FILE="$SITE_DIR/studio-payload.env"
+  local DB_FILE="$SITE_DIR/payload.db"
 
   echo ""
-  echo -e "  ${BOLD}Studio-Payload — Admin-User anlegen${NC}"
+  echo -e "  ${BOLD}Studio-Payload — Ersten Admin-User anlegen${NC}"
   echo ""
 
   if [ ! -f "$ENV_FILE" ]; then
@@ -491,34 +490,57 @@ cmd_create_admin() {
     exit 1
   fi
 
-  # Port ermitteln
-  local PORT=$(tld_to_port "$TLD")
+  if [ ! -f "$DB_FILE" ]; then
+    err "DB nicht gefunden: $DB_FILE — Zuerst: payload.sh (Install/Update)"
+    exit 1
+  fi
 
-  # Pruefen ob Service laeuft
+  # Sicherheitscheck: Nur wenn noch KEIN Admin-User existiert
+  local ADMIN_COUNT
+  ADMIN_COUNT=$(sqlite3 "$DB_FILE" "SELECT count(*) FROM users WHERE role='admin';" 2>/dev/null || echo "0")
+  if [ "$ADMIN_COUNT" -gt 0 ]; then
+    err "Es existiert bereits ein Admin-User. Dieser Befehl ist nur fuer die Ersteinrichtung."
+    echo "  Bestehende Admins: $ADMIN_COUNT"
+    exit 1
+  fi
+
+  # Port ermitteln + Service pruefen
+  local PORT=$(tld_to_port "$TLD")
   local SVC=$(tld_to_service "$TLD")
   if ! systemctl is-active --quiet "$SVC" 2>/dev/null; then
     err "$SVC laeuft nicht. Zuerst: systemctl start $SVC"
     exit 1
   fi
 
-  # User via better-auth API anlegen
+  # Passwort interaktiv abfragen (nicht in Kommandozeile/History)
+  local PASSWORD
+  read -s -p "  Passwort fuer $EMAIL: " PASSWORD
+  echo ""
+  if [ ${#PASSWORD} -lt 8 ]; then
+    err "Passwort muss mindestens 8 Zeichen haben."
+    exit 1
+  fi
+  local PASSWORD2
+  read -s -p "  Passwort wiederholen: " PASSWORD2
+  echo ""
+  if [ "$PASSWORD" != "$PASSWORD2" ]; then
+    err "Passwoerter stimmen nicht ueberein."
+    exit 1
+  fi
+
+  # User via better-auth API anlegen (localhost — kein externer Zugriff)
   info "Erstelle Admin-User: $EMAIL..."
   local RESPONSE
   RESPONSE=$(curl -sf "http://127.0.0.1:$PORT/api/auth/sign-up/email" -X POST \
     -H "Content-Type: application/json" \
-    -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"name\":\"$NAME\"}" 2>/dev/null) || {
-    err "Signup fehlgeschlagen"
-    echo "  Antwort: $RESPONSE"
-    exit 1
-  }
+    -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"name\":\"Admin\"}" 2>/dev/null) || true
 
   local USER_ID
   USER_ID=$(echo "$RESPONSE" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).user.id)}catch{console.log('')}})" 2>/dev/null)
 
   if [ -z "$USER_ID" ]; then
-    # Pruefen ob User bereits existiert
     if echo "$RESPONSE" | grep -q "ALREADY_EXISTS"; then
-      warn "User $EMAIL existiert bereits"
+      warn "User $EMAIL existiert bereits — setze Rolle auf admin"
     else
       err "User-Erstellung fehlgeschlagen: $RESPONSE"
       exit 1
@@ -527,20 +549,14 @@ cmd_create_admin() {
     ok "User erstellt: ID $USER_ID"
   fi
 
-  # Rolle auf admin setzen via SQLite (better-auth hat keinen Admin-Role-API-Endpoint)
-  local DB_FILE="$SITE_DIR/payload.db"
-  if [ -f "$DB_FILE" ]; then
-    sqlite3 "$DB_FILE" "UPDATE users SET role='admin' WHERE email='$EMAIL';"
-    local ROLE
-    ROLE=$(sqlite3 "$DB_FILE" "SELECT role FROM users WHERE email='$EMAIL';")
-    if [ "$ROLE" = "admin" ]; then
-      ok "Rolle gesetzt: admin"
-    else
-      err "Rolle konnte nicht gesetzt werden (aktuell: $ROLE)"
-      exit 1
-    fi
+  # Rolle auf admin setzen
+  sqlite3 "$DB_FILE" "UPDATE users SET role='admin' WHERE email='$EMAIL';"
+  local ROLE
+  ROLE=$(sqlite3 "$DB_FILE" "SELECT role FROM users WHERE email='$EMAIL';")
+  if [ "$ROLE" = "admin" ]; then
+    ok "Rolle gesetzt: admin"
   else
-    err "DB nicht gefunden: $DB_FILE"
+    err "Rolle konnte nicht gesetzt werden (aktuell: $ROLE)"
     exit 1
   fi
 
@@ -568,12 +584,13 @@ case "${1:-}" in
     cmd_setup "$2"
     ;;
   create-admin)
-    if [ -z "${2:-}" ] || [ -z "${3:-}" ] || [ -z "${4:-}" ]; then
-      err "Verwendung: bash -s create-admin <tld> <email> <password> [name]"
-      echo -e "     Beispiel: ${BOLD}curl -fsSL https://studio.xed.dev/payload.sh | bash -s create-admin steirischursprung.at admin@example.com MySecurePass123${NC}"
+    if [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
+      err "Verwendung: bash -s create-admin <tld> <email>"
+      echo -e "     Beispiel: ${BOLD}curl -fsSL https://studio.xed.dev/payload.sh | bash -s create-admin steirischursprung.at admin@example.com${NC}"
+      echo "  Passwort wird interaktiv abgefragt (nicht in der Kommandozeile)."
       exit 1
     fi
-    cmd_create_admin "$2" "$3" "$4" "${5:-Admin}"
+    cmd_create_admin "$2" "$3"
     ;;
   status)
     cmd_status
