@@ -119,9 +119,10 @@ const c = require('crypto');
 const lines = [
   'PAYLOAD_SECRET=' + c.randomBytes(32).toString('hex'),
   'BETTER_AUTH_SECRET=' + c.randomBytes(32).toString('hex'),
-  'BETTER_AUTH_URL=https://jam.$TLD',
+  'BETTER_AUTH_URL=https://jam.$TLD/studio',
   'DATABASE_URI=file://$SITE_DIR/payload.db',
-  'NEXT_PUBLIC_SERVER_URL=https://jam.$TLD'
+  'NEXT_PUBLIC_SERVER_URL=https://jam.$TLD/studio',
+  'NEXT_PUBLIC_BASE_PATH=/studio'
 ];
 require('fs').writeFileSync('$ENV_FILE', lines.join('\\n') + '\\n');
 "
