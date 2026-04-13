@@ -336,7 +336,7 @@ cmd_install() {
     exit 1
   }
 
-  # ── Restart laufende Services (nur bei Update) ──
+  # ── Restart/Start Services nach Update ──
   if [ "$IS_UPDATE" = true ]; then
     for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
       if [ -f "$SITE_BASE/$d/studio-payload.env" ]; then
@@ -344,12 +344,17 @@ cmd_install() {
         if systemctl is-active --quiet "$svc" 2>/dev/null; then
           info "Restart: $svc..."
           systemctl restart "$svc"
-          sleep 1
-          if systemctl is-active --quiet "$svc"; then
-            ok "$svc laeuft"
-          else
-            warn "$svc startet nicht — pruefe: journalctl -u $svc -n 30"
-          fi
+        elif systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+          info "Start: $svc (war gestoppt)..."
+          systemctl start "$svc"
+        else
+          continue
+        fi
+        sleep 1
+        if systemctl is-active --quiet "$svc"; then
+          ok "$svc laeuft"
+        else
+          warn "$svc Start fehlgeschlagen — pruefe: journalctl -u $svc -n 30"
         fi
       fi
     done
