@@ -513,8 +513,19 @@ cmd_create_admin() {
   fi
 
   # Passwort interaktiv abfragen (nicht in Kommandozeile/History)
+  # Prüfen ob stdin ein Terminal ist (funktioniert nicht mit curl | bash)
+  if [ ! -t 0 ]; then
+    err "Dieser Befehl benötigt interaktive Eingabe."
+    echo "  Bitte so ausführen (nicht über Pipe):"
+    echo ""
+    echo -e "    ${BOLD}curl -fsSL https://studio.xed.dev/payload.sh -o /tmp/payload.sh${NC}"
+    echo -e "    ${BOLD}bash /tmp/payload.sh create-admin $TLD $EMAIL${NC}"
+    echo ""
+    exit 1
+  fi
+
   local PASSWORD
-  read -s -p "  Passwort fuer $EMAIL: " PASSWORD
+  read -s -p "  Passwort für $EMAIL: " PASSWORD
   echo ""
   if [ ${#PASSWORD} -lt 8 ]; then
     err "Passwort muss mindestens 8 Zeichen haben."
@@ -524,7 +535,7 @@ cmd_create_admin() {
   read -s -p "  Passwort wiederholen: " PASSWORD2
   echo ""
   if [ "$PASSWORD" != "$PASSWORD2" ]; then
-    err "Passwoerter stimmen nicht ueberein."
+    err "Passwörter stimmen nicht überein."
     exit 1
   fi
 
