@@ -79,6 +79,188 @@ if [ "${1:-}" = "status" ]; then
   exit 0
 fi
 
+# ── Subcommand: setup <tld> ──────────────────────────────────────────────────
+
+if [ "${1:-}" = "setup" ]; then
+  TLD="${2:-}"
+  if [ -z "$TLD" ]; then
+    err "TLD fehlt. Verwendung: bash -s setup <tld>"
+    echo -e "     Beispiel: ${BOLD}curl -fsSL https://studio.xed.dev/install.sh | bash -s setup steirischursprung.at${NC}"
+    exit 1
+  fi
+
+  SITE_DIR="$SITE_BASE/$TLD"
+  SVC_NAME="infactory-${TLD//./-}"
+  CFG_FILE="$SITE_DIR/infactory.json"
+  SVC_FILE="/etc/systemd/system/${SVC_NAME}.service"
+  INF_PORT=4368
+
+  echo ""
+  echo -e "  ${BOLD}inFactory Setup${NC} — Track A — $TLD"
+  echo ""
+
+  # Voraussetzung: Code muss installiert sein
+  if [ ! -f "$INSTALL_DIR/infactory-cli/bin/infactory.js" ]; then
+    err "inFactory nicht installiert. Zuerst:"
+    echo -e "     ${BOLD}curl -fsSL https://studio.xed.dev/install.sh | bash${NC}"
+    exit 1
+  fi
+  ok "Code vorhanden: $INSTALL_DIR/"
+
+  # Site-Verzeichnis
+  if [ ! -d "$SITE_DIR" ]; then
+    info "Erstelle $SITE_DIR..."
+    mkdir -p "$SITE_DIR"
+    chown g-host:g-host "$SITE_DIR"
+    ok "$SITE_DIR erstellt"
+  else
+    ok "$SITE_DIR existiert"
+  fi
+
+  # Port (bestehende Config reuse, sonst Default 4368)
+  if [ -f "$CFG_FILE" ]; then
+    INF_PORT=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$CFG_FILE')).infactory_port||4368)}catch{console.log(4368)}" 2>/dev/null || echo "4368")
+  fi
+
+  # API-Key (bestehenden reuse, sonst neu generieren)
+  API_KEY=""
+  if [ -f "$CFG_FILE" ]; then
+    API_KEY=$(node -e "try{const c=JSON.parse(require('fs').readFileSync('$CFG_FILE'));if(/^[0-9a-f]{64}$/.test(c.api_key))console.log(c.api_key)}catch{}" 2>/dev/null || echo "")
+  fi
+  if [ -z "$API_KEY" ]; then
+    API_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+    info "API-Key: neu generiert (${API_KEY:0:8}...)"
+  else
+    ok "API-Key: reuse aus bestehender Config (${API_KEY:0:8}...)"
+  fi
+
+  # Subdomain-Autodetect: /var/www/*.<tld>/htdocs/
+  NGINX_SITES="{"
+  SITE_COUNT=0
+  for wwwdir in /var/www/*."$TLD"/htdocs /var/www/"$TLD"/htdocs; do
+    [ -d "$wwwdir" ] || continue
+    dirname=$(basename "$(dirname "$wwwdir")")
+    if [ "$dirname" = "$TLD" ]; then
+      slug="root"
+    else
+      slug=$(echo "$dirname" | sed "s/\\.${TLD}$//" | tr '.' '_')
+    fi
+    [ "$SITE_COUNT" -gt 0 ] && NGINX_SITES="$NGINX_SITES,"
+    NGINX_SITES="$NGINX_SITES \"$slug\": { \"webroot\": \"$wwwdir/\" }"
+    ok "Site: $slug → $wwwdir/"
+    ((SITE_COUNT++))
+  done
+  NGINX_SITES="$NGINX_SITES }"
+
+  if [ "$SITE_COUNT" -eq 0 ]; then
+    warn "Keine WordOps-Sites fuer $TLD gefunden."
+    warn "Erwartet: /var/www/<sub>.$TLD/htdocs/"
+    NGINX_SITES="{}"
+  fi
+
+  # infactory.json schreiben (idempotent — bestehende Keys behalten)
+  info "Schreibe $CFG_FILE..."
+  node -e "
+const fs = require('fs');
+const cfg = {
+  version: '1.3.0',
+  domain: '$TLD',
+  infactory_port: $INF_PORT,
+  api_key: '$API_KEY',
+  auto_sleep_minutes: 360,
+  ghost_url: '',
+  ghost_admin_key: '',
+  nginx_sites: $NGINX_SITES,
+  venv_path: fs.existsSync('/opt/infactory/venv/bin/python3') ? '/opt/infactory/venv' : '',
+  references_path: fs.existsSync('/opt/infactory/references') ? '/opt/infactory/references' : '',
+  installed_at: new Date().toISOString()
+};
+fs.writeFileSync('$CFG_FILE', JSON.stringify(cfg, null, 2) + '\n', { mode: 0o600 });
+"
+  chown g-host:g-host "$CFG_FILE"
+  ok "$CFG_FILE geschrieben"
+
+  # systemd-Service (idempotent — immer neu schreiben)
+  info "Schreibe systemd Service auf Port $INF_PORT..."
+  cat > "$SVC_FILE" << UNIT
+[Unit]
+Description=inFactory Server — Track A ($TLD)
+After=network.target
+
+[Service]
+Type=simple
+User=g-host
+Group=g-host
+WorkingDirectory=$SITE_DIR
+ExecStart=/usr/bin/node $INSTALL_DIR/infactory-server/src/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=INFACTORY_CONFIG=$CFG_FILE
+Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/infactory/browsers
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  systemctl daemon-reload
+  systemctl enable "$SVC_NAME" 2>/dev/null
+  ok "Service: $SVC_NAME (Port $INF_PORT)"
+
+  # ACLs fuer WordOps-Webroots
+  for wwwdir in /var/www/*."$TLD"/htdocs /var/www/"$TLD"/htdocs; do
+    [ -d "$wwwdir" ] || continue
+    setfacl -R -m  u:g-host:rwx "$wwwdir" 2>/dev/null
+    setfacl -R -dm u:g-host:rwx "$wwwdir" 2>/dev/null
+  done
+  ok "ACLs fuer WordOps-Webroots gesetzt"
+
+  # Service starten
+  info "Starte $SVC_NAME..."
+  systemctl restart "$SVC_NAME"
+  sleep 2
+
+  if systemctl is-active --quiet "$SVC_NAME"; then
+    ok "$SVC_NAME laeuft (Port $INF_PORT)"
+  else
+    err "$SVC_NAME startet nicht — pruefe: journalctl -u $SVC_NAME -n 30"
+    exit 1
+  fi
+
+  # Health-Check
+  health=$(curl -sf "http://127.0.0.1:$INF_PORT/xed/api/health" 2>/dev/null)
+  if [ $? -eq 0 ]; then
+    version=$(echo "$health" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).server.version)}catch{console.log('?')}})" 2>/dev/null || echo "?")
+    ok "/xed/api/health → v$version"
+  else
+    warn "/xed/api/health nicht erreichbar (Service laeuft, API evtl. noch beim Starten)"
+  fi
+
+  # NGINX Hinweis
+  echo ""
+  echo -e "  ${YELLOW}NGINX-Route manuell einrichten${NC} (falls noch nicht vorhanden):"
+  echo ""
+  echo -e "    ${BOLD}location /xed/ {"
+  echo -e "        proxy_pass http://127.0.0.1:${INF_PORT}/;"
+  [ -f "/etc/nginx/proxy/xed.conf" ] && echo -e "        include /etc/nginx/proxy/xed.conf;"
+  echo -e "    }${NC}"
+  echo ""
+  echo -e "  Dann: ${BOLD}nginx -t && systemctl reload nginx${NC}"
+  echo ""
+
+  # Zusammenfassung
+  HEAD_SHORT=$(cd "$INSTALL_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "?")
+  echo -e "  ${GREEN}${BOLD}Setup abgeschlossen!${NC}"
+  echo ""
+  echo "  TLD:       $TLD"
+  echo "  Port:      $INF_PORT"
+  echo "  Service:   $SVC_NAME"
+  echo "  Config:    $CFG_FILE"
+  echo "  Sites:     $SITE_COUNT Webroot(s)"
+  echo "  Commit:    $HEAD_SHORT"
+  echo ""
+  exit 0
+fi
+
 # ── Hauptprogramm: Install/Update ────────────────────────────────────────────
 
 echo ""
