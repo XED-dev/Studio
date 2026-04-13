@@ -135,48 +135,60 @@ if [ "${1:-}" = "setup" ]; then
   fi
 
   # Subdomain-Autodetect: /var/www/*.<tld>/htdocs/
-  NGINX_SITES="{"
   SITE_COUNT=0
   for wwwdir in /var/www/*."$TLD"/htdocs /var/www/"$TLD"/htdocs; do
     [ -d "$wwwdir" ] || continue
-    dirname=$(basename "$(dirname "$wwwdir")")
-    if [ "$dirname" = "$TLD" ]; then
-      slug="root"
-    else
-      slug=$(echo "$dirname" | sed "s/\\.${TLD}$//" | tr '.' '_')
-    fi
-    [ "$SITE_COUNT" -gt 0 ] && NGINX_SITES="$NGINX_SITES,"
-    NGINX_SITES="$NGINX_SITES \"$slug\": { \"webroot\": \"$wwwdir/\" }"
-    ok "Site: $slug → $wwwdir/"
+    dn=$(basename "$(dirname "$wwwdir")")
+    if [ "$dn" = "$TLD" ]; then sl="root"; else sl=$(echo "$dn" | sed "s/\\.${TLD}$//;s/\\./_/g"); fi
+    ok "Site: $sl → $wwwdir/"
     ((SITE_COUNT++))
   done
-  NGINX_SITES="$NGINX_SITES }"
 
   if [ "$SITE_COUNT" -eq 0 ]; then
     warn "Keine WordOps-Sites fuer $TLD gefunden."
     warn "Erwartet: /var/www/<sub>.$TLD/htdocs/"
-    NGINX_SITES="{}"
   fi
 
   # infactory.json schreiben (idempotent — bestehende Keys behalten)
   info "Schreibe $CFG_FILE..."
-  node << NODESCRIPT
-const fs = require('fs');
-const cfg = {
-  version: '1.3.0',
-  domain: '$TLD',
-  infactory_port: $INF_PORT,
-  api_key: '$API_KEY',
-  auto_sleep_minutes: 360,
-  ghost_url: '',
-  ghost_admin_key: '',
-  nginx_sites: $NGINX_SITES,
-  venv_path: fs.existsSync('/opt/infactory/venv/bin/python3') ? '/opt/infactory/venv' : '',
-  references_path: fs.existsSync('/opt/infactory/references') ? '/opt/infactory/references' : '',
-  installed_at: new Date().toISOString()
-};
-fs.writeFileSync('$CFG_FILE', JSON.stringify(cfg, null, 2) + '\\n', { mode: 0o600 });
-NODESCRIPT
+
+  # Venv/References Pfade pruefen
+  VENV_PATH=""
+  [ -f "/opt/infactory/venv/bin/python3" ] && VENV_PATH="/opt/infactory/venv"
+  REFS_PATH=""
+  [ -d "/opt/infactory/references" ] && REFS_PATH="/opt/infactory/references"
+
+  # nginx_sites JSON bauen (pro Site ein Eintrag)
+  SITES_JSON="{"
+  SITES_IDX=0
+  for wwwdir in /var/www/*."$TLD"/htdocs /var/www/"$TLD"/htdocs; do
+    [ -d "$wwwdir" ] || continue
+    dn=$(basename "$(dirname "$wwwdir")")
+    if [ "$dn" = "$TLD" ]; then sl="root"; else sl=$(echo "$dn" | sed "s/\\.${TLD}$//;s/\\./_/g"); fi
+    [ "$SITES_IDX" -gt 0 ] && SITES_JSON="${SITES_JSON},"
+    SITES_JSON="${SITES_JSON}
+    \"${sl}\": { \"webroot\": \"${wwwdir}/\" }"
+    ((SITES_IDX++))
+  done
+  SITES_JSON="${SITES_JSON}
+  }"
+
+  cat > "$CFG_FILE" << CFGEOF
+{
+  "version": "1.3.0",
+  "domain": "$TLD",
+  "infactory_port": $INF_PORT,
+  "api_key": "$API_KEY",
+  "auto_sleep_minutes": 360,
+  "ghost_url": "",
+  "ghost_admin_key": "",
+  "nginx_sites": $SITES_JSON,
+  "venv_path": "$VENV_PATH",
+  "references_path": "$REFS_PATH",
+  "installed_at": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+}
+CFGEOF
+  chmod 600 "$CFG_FILE"
   chown g-host:g-host "$CFG_FILE"
   ok "$CFG_FILE geschrieben"
 
