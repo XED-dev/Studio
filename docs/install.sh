@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────────────
 # inFactory — AI-Agent-First Ghost Theme Factory
-# One-liner: curl -fsSL https://studio.xed.dev/install.sh | bash
+#
+# Verwendung:
+#   curl -fsSL https://studio.xed.dev/install.sh | bash              # Install/Update
+#   curl -fsSL https://studio.xed.dev/install.sh | bash -s status    # Status aller Services
+#
+# Health-Check fuer ALLE Services (infactory + studio-payload + nginx):
+#   curl -fsSL https://studio.xed.dev/health.sh | bash               # Pruefen
+#   curl -fsSL https://studio.xed.dev/health.sh | bash -s fix        # Pruefen + Auto-Fix
 # ──────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -19,9 +26,60 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
 
+YELLOW='\033[0;33m'
+
 info()  { echo -e "  ${BLUE}→${NC} $1"; }
 ok()    { echo -e "  ${GREEN}✔${NC} $1"; }
+warn()  { echo -e "  ${YELLOW}⚠${NC} $1"; }
 err()   { echo -e "  ${RED}✗${NC} $1" >&2; }
+
+SITE_BASE="/var/xed"
+
+# ── Subcommand: status ───────────────────────────────────────────────────────
+
+if [ "${1:-}" = "status" ]; then
+  echo ""
+  echo -e "  ${BOLD}inFactory Status${NC}"
+  echo ""
+
+  if [ -d "$INSTALL_DIR" ]; then
+    CLI_VER=$(node -p "require('$INSTALL_DIR/infactory-cli/package.json').version" 2>/dev/null || echo "?")
+    SRV_VER=$(node -p "require('$INSTALL_DIR/infactory-server/package.json').version" 2>/dev/null || echo "?")
+    HEAD=$(cd "$INSTALL_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "?")
+    echo "  Code: CLI v${CLI_VER}, Server v${SRV_VER} (${HEAD})"
+  else
+    err "Nicht installiert: $INSTALL_DIR"
+    exit 1
+  fi
+  echo ""
+
+  for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
+    [ -f "$SITE_BASE/$d/infactory.json" ] || continue
+    local_port=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$SITE_BASE/$d/infactory.json')).port||4368)}catch{console.log(4368)}" 2>/dev/null || echo "4368")
+    svc="infactory-${d//./-}"
+    status="${RED}DOWN${NC}"
+    systemctl is-active --quiet "$svc" 2>/dev/null && status="${GREEN}active${NC}"
+    echo -e "  ${BOLD}$d${NC}  Port $local_port  [$status]  $svc"
+
+    # Health-Check
+    if systemctl is-active --quiet "$svc" 2>/dev/null; then
+      health=$(curl -sf "http://127.0.0.1:$local_port/xed/api/health" 2>/dev/null)
+      if [ $? -eq 0 ]; then
+        version=$(echo "$health" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).server.version)}catch{console.log('?')}})" 2>/dev/null || echo "?")
+        ok "  /xed/api/health → v$version"
+      else
+        warn "  /xed/api/health nicht erreichbar"
+      fi
+    fi
+  done
+  echo ""
+  echo -e "  Vollstaendiger Health-Check (alle Services):"
+  echo -e "    ${BOLD}curl -fsSL https://studio.xed.dev/health.sh | bash${NC}"
+  echo ""
+  exit 0
+fi
+
+# ── Hauptprogramm: Install/Update ────────────────────────────────────────────
 
 echo ""
 echo -e "  ${BOLD}inFactory${NC} — Studio.XED.dev"
@@ -247,6 +305,25 @@ CLI_VERSION=$(node -p "require('$INSTALL_DIR/infactory-cli/package.json').versio
 SERVER_VERSION=$(node -p "require('$INSTALL_DIR/infactory-server/package.json').version" 2>/dev/null || echo "?")
 HEAD_SHORT=$(cd "$INSTALL_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "?")
 
+# ─── Restart laufende infactory-Services ─────────────────────────────────────
+
+RESTARTED=0
+for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
+  [ -f "$SITE_BASE/$d/infactory.json" ] || continue
+  svc="infactory-${d//./-}"
+  if systemctl is-active --quiet "$svc" 2>/dev/null; then
+    info "Restart: $svc..."
+    systemctl restart "$svc" 2>/dev/null
+    sleep 1
+    if systemctl is-active --quiet "$svc" 2>/dev/null; then
+      ok "$svc laeuft"
+      ((RESTARTED++))
+    else
+      warn "$svc Restart fehlgeschlagen — journalctl -u $svc -n 20"
+    fi
+  fi
+done
+
 echo ""
 echo -e "  ${GREEN}${BOLD}Installation abgeschlossen!${NC}"
 echo ""
@@ -256,6 +333,7 @@ echo "  Commit:  ${HEAD_SHORT}"
 echo "  Pfad:    $INSTALL_DIR/"
 [ -d "$VENV_DIR/bin" ] && echo "  Venv:    $VENV_DIR/"
 echo "  Refs:    $REFERENCES_DIR/"
+[ "$RESTARTED" -gt 0 ] && echo "  Restart: $RESTARTED Service(s) neugestartet"
 echo ""
 echo -e "  ${BOLD}Nächster Schritt — pro Site:${NC}"
 echo ""
