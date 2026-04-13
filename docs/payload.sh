@@ -583,6 +583,184 @@ cmd_create_admin() {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COMMAND: admin list — Alle User anzeigen
+# ══════════════════════════════════════════════════════════════════════════════
+
+cmd_admin_list() {
+  local TLD="$1"
+  local DB_FILE="$SITE_BASE/$TLD/payload.db"
+
+  echo ""
+  echo -e "  ${BOLD}Studio-Payload — User-Liste${NC} ($TLD)"
+  echo ""
+
+  if [ ! -f "$DB_FILE" ]; then
+    err "DB nicht gefunden: $DB_FILE"
+    exit 1
+  fi
+
+  echo -e "  ${BOLD}ID  | Rolle  | Email                        | Erstellt${NC}"
+  echo "  ----|--------|------------------------------|--------------------"
+  sqlite3 "$DB_FILE" "SELECT id, role, email, created_at FROM users ORDER BY id;" | while IFS='|' read -r id role email created; do
+    printf "  %-4s| %-7s| %-29s| %s\n" "$id" "$role" "$email" "$created"
+  done
+  echo ""
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# COMMAND: admin reset-password — Passwort zurücksetzen
+# ══════════════════════════════════════════════════════════════════════════════
+
+cmd_admin_reset_password() {
+  local TLD="$1"
+  local EMAIL="$2"
+  local SITE_DIR="$SITE_BASE/$TLD"
+  local DB_FILE="$SITE_DIR/payload.db"
+
+  echo ""
+  echo -e "  ${BOLD}Studio-Payload — Passwort zurücksetzen${NC}"
+  echo ""
+
+  if [ ! -f "$DB_FILE" ]; then
+    err "DB nicht gefunden: $DB_FILE"
+    exit 1
+  fi
+
+  # Prüfen ob User existiert
+  local USER_EXISTS
+  USER_EXISTS=$(sqlite3 "$DB_FILE" "SELECT count(*) FROM users WHERE email='$EMAIL';")
+  if [ "$USER_EXISTS" -eq 0 ]; then
+    err "User $EMAIL existiert nicht."
+    cmd_admin_list "$TLD"
+    exit 1
+  fi
+
+  # Service prüfen
+  local PORT=$(tld_to_port "$TLD")
+  local SVC=$(tld_to_service "$TLD")
+  if ! systemctl is-active --quiet "$SVC" 2>/dev/null; then
+    err "$SVC läuft nicht. Zuerst: systemctl start $SVC"
+    exit 1
+  fi
+
+  # Interaktive Eingabe prüfen
+  if [ ! -t 0 ]; then
+    err "Dieser Befehl benötigt interaktive Eingabe."
+    echo "  Bitte so ausführen:"
+    echo ""
+    echo -e "    ${BOLD}curl -fsSL https://studio.xed.dev/payload.sh -o /tmp/payload.sh${NC}"
+    echo -e "    ${BOLD}bash /tmp/payload.sh admin reset-password $TLD $EMAIL${NC}"
+    echo ""
+    exit 1
+  fi
+
+  local PASSWORD
+  read -s -p "  Neues Passwort für $EMAIL: " PASSWORD
+  echo ""
+  if [ ${#PASSWORD} -lt 8 ]; then
+    err "Passwort muss mindestens 8 Zeichen haben."
+    exit 1
+  fi
+  local PASSWORD2
+  read -s -p "  Passwort wiederholen: " PASSWORD2
+  echo ""
+  if [ "$PASSWORD" != "$PASSWORD2" ]; then
+    err "Passwörter stimmen nicht überein."
+    exit 1
+  fi
+
+  # Passwort-Hash über better-auth generieren:
+  # User löschen und neu anlegen (better-auth hat keinen direkten Passwort-Update)
+  info "Setze Passwort zurück..."
+
+  # Aktuelle Rolle merken
+  local CURRENT_ROLE
+  CURRENT_ROLE=$(sqlite3 "$DB_FILE" "SELECT role FROM users WHERE email='$EMAIL';")
+
+  # User und zugehörige Sessions/Accounts löschen
+  local USER_ID
+  USER_ID=$(sqlite3 "$DB_FILE" "SELECT id FROM users WHERE email='$EMAIL';")
+  sqlite3 "$DB_FILE" "DELETE FROM sessions WHERE user_id='$USER_ID';"
+  sqlite3 "$DB_FILE" "DELETE FROM accounts WHERE user_id='$USER_ID';"
+  sqlite3 "$DB_FILE" "DELETE FROM users WHERE id='$USER_ID';"
+  ok "Alter User entfernt (ID $USER_ID)"
+
+  # Neu anlegen via API (erstellt korrekten Passwort-Hash)
+  local RESPONSE
+  RESPONSE=$(curl -sf "http://127.0.0.1:$PORT/api/auth/sign-up/email" -X POST \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"name\":\"Admin\"}" 2>/dev/null) || true
+
+  local NEW_ID
+  NEW_ID=$(echo "$RESPONSE" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).user.id)}catch{console.log('')}})" 2>/dev/null)
+
+  if [ -z "$NEW_ID" ]; then
+    err "User-Erstellung fehlgeschlagen: $RESPONSE"
+    exit 1
+  fi
+
+  # Rolle wiederherstellen
+  sqlite3 "$DB_FILE" "UPDATE users SET role='$CURRENT_ROLE' WHERE id='$NEW_ID';"
+  ok "Passwort zurückgesetzt, Rolle: $CURRENT_ROLE"
+
+  echo ""
+  echo -e "  ${GREEN}${BOLD}Passwort erfolgreich geändert!${NC}"
+  echo ""
+  echo "  Email:    $EMAIL"
+  echo "  Rolle:    $CURRENT_ROLE"
+  echo "  Login:    https://jam.$TLD/studio/admin/login"
+  echo ""
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# COMMAND: admin delete — User löschen
+# ══════════════════════════════════════════════════════════════════════════════
+
+cmd_admin_delete() {
+  local TLD="$1"
+  local EMAIL="$2"
+  local DB_FILE="$SITE_BASE/$TLD/payload.db"
+
+  echo ""
+  echo -e "  ${BOLD}Studio-Payload — User löschen${NC}"
+  echo ""
+
+  if [ ! -f "$DB_FILE" ]; then
+    err "DB nicht gefunden: $DB_FILE"
+    exit 1
+  fi
+
+  local USER_ID
+  USER_ID=$(sqlite3 "$DB_FILE" "SELECT id FROM users WHERE email='$EMAIL';")
+  if [ -z "$USER_ID" ]; then
+    err "User $EMAIL existiert nicht."
+    exit 1
+  fi
+
+  local ROLE
+  ROLE=$(sqlite3 "$DB_FILE" "SELECT role FROM users WHERE email='$EMAIL';")
+
+  # Sicherheitscheck: Nicht den letzten Admin löschen
+  if [ "$ROLE" = "admin" ]; then
+    local ADMIN_COUNT
+    ADMIN_COUNT=$(sqlite3 "$DB_FILE" "SELECT count(*) FROM users WHERE role='admin';")
+    if [ "$ADMIN_COUNT" -le 1 ]; then
+      err "Kann den letzten Admin-User nicht löschen."
+      exit 1
+    fi
+  fi
+
+  info "Lösche User: $EMAIL (ID $USER_ID, Rolle $ROLE)..."
+  sqlite3 "$DB_FILE" "DELETE FROM sessions WHERE user_id='$USER_ID';"
+  sqlite3 "$DB_FILE" "DELETE FROM accounts WHERE user_id='$USER_ID';"
+  sqlite3 "$DB_FILE" "DELETE FROM users WHERE id='$USER_ID';"
+  ok "User gelöscht"
+
+  echo ""
+  cmd_admin_list "$TLD"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MAIN — Dispatcher
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -599,11 +777,47 @@ case "${1:-}" in
   create-admin)
     if [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
       err "Verwendung: bash -s create-admin <tld> <email>"
-      echo -e "     Beispiel: ${BOLD}curl -fsSL https://studio.xed.dev/payload.sh | bash -s create-admin steirischursprung.at admin@example.com${NC}"
-      echo "  Passwort wird interaktiv abgefragt (nicht in der Kommandozeile)."
+      echo -e "     Beispiel: ${BOLD}bash /tmp/payload.sh create-admin steirischursprung.at admin@example.com${NC}"
+      echo "  Passwort wird interaktiv abgefragt."
       exit 1
     fi
     cmd_create_admin "$2" "$3"
+    ;;
+  admin)
+    case "${2:-}" in
+      list)
+        if [ -z "${3:-}" ]; then
+          err "Verwendung: bash -s admin list <tld>"
+          exit 1
+        fi
+        cmd_admin_list "$3"
+        ;;
+      reset-password)
+        if [ -z "${3:-}" ] || [ -z "${4:-}" ]; then
+          err "Verwendung: bash -s admin reset-password <tld> <email>"
+          echo -e "     Beispiel: ${BOLD}bash /tmp/payload.sh admin reset-password steirischursprung.at admin@example.com${NC}"
+          exit 1
+        fi
+        cmd_admin_reset_password "$3" "$4"
+        ;;
+      delete)
+        if [ -z "${3:-}" ] || [ -z "${4:-}" ]; then
+          err "Verwendung: bash -s admin delete <tld> <email>"
+          exit 1
+        fi
+        cmd_admin_delete "$3" "$4"
+        ;;
+      *)
+        echo ""
+        echo -e "  ${BOLD}Studio-Payload Admin-Befehle:${NC}"
+        echo ""
+        echo "  bash /tmp/payload.sh create-admin <tld> <email>              Ersten Admin anlegen"
+        echo "  bash /tmp/payload.sh admin list <tld>                        Alle User anzeigen"
+        echo "  bash /tmp/payload.sh admin reset-password <tld> <email>      Passwort zurücksetzen"
+        echo "  bash /tmp/payload.sh admin delete <tld> <email>              User löschen"
+        echo ""
+        ;;
+    esac
     ;;
   status)
     cmd_status
