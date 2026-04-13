@@ -346,6 +346,13 @@ cmd_install() {
   fi
 
   # ── Build ──
+  # Env-Vars laden (NEXT_PUBLIC_* werden zur Build-Zeit ausgewertet)
+  for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
+    if [ -f "$SITE_BASE/$d/studio-payload.env" ]; then
+      set -a; source "$SITE_BASE/$d/studio-payload.env"; set +a
+      break  # Erste Site fuer Build-Env reicht
+    fi
+  done
   info "Next.js Build..."
   cd "$INSTALL_DIR"
   pnpm build && ok "Next.js Build erfolgreich" || {
