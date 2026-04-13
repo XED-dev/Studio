@@ -160,7 +160,7 @@ if [ "${1:-}" = "setup" ]; then
 
   # infactory.json schreiben (idempotent — bestehende Keys behalten)
   info "Schreibe $CFG_FILE..."
-  node -e "
+  node << NODESCRIPT
 const fs = require('fs');
 const cfg = {
   version: '1.3.0',
@@ -175,8 +175,8 @@ const cfg = {
   references_path: fs.existsSync('/opt/infactory/references') ? '/opt/infactory/references' : '',
   installed_at: new Date().toISOString()
 };
-fs.writeFileSync('$CFG_FILE', JSON.stringify(cfg, null, 2) + '\n', { mode: 0o600 });
-"
+fs.writeFileSync('$CFG_FILE', JSON.stringify(cfg, null, 2) + '\\n', { mode: 0o600 });
+NODESCRIPT
   chown g-host:g-host "$CFG_FILE"
   ok "$CFG_FILE geschrieben"
 

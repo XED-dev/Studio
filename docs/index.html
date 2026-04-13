@@ -3,159 +3,157 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>inFactory@ /Studio by XED.dev — AI-Agent-First Ghost Theme Factory</title>
+  <title>inFactory@ /Studio by XED.dev — CSS Subgrid Section Renderer + Puck Visual Editor</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 680px; margin: 0 auto; padding: 24px 20px 80px; background: #0d1117; color: #c9d1d9; line-height: 1.6; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 720px; margin: 0 auto; padding: 24px 20px 80px; background: #0d1117; color: #c9d1d9; line-height: 1.6; }
     h1 { font-family: monospace; color: #58a6ff; font-size: 2rem; margin: 0.5rem 0 0.2rem; }
     .tagline { color: #8b949e; font-size: 1.1rem; margin-bottom: 2rem; }
     h2 { color: #e6edf3; font-size: 1.05rem; margin-top: 2rem; margin-bottom: 0.5rem; }
     code { font-family: monospace; background: #161b22; padding: 2px 7px; border-radius: 4px; color: #79c0ff; font-size: 0.9em; }
-    pre { background: #161b22; border: 1px solid #30363d; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 0.95rem; }
+    pre { background: #161b22; border: 1px solid #30363d; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 0.88rem; }
     pre code { background: none; padding: 0; color: #e6edf3; }
     a { color: #58a6ff; text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .install-box { background: #161b22; border: 1px solid #388bfd55; border-radius: 8px; padding: 20px 24px; margin: 1.5rem 0; }
-    .install-box h2 { margin-top: 0; color: #58a6ff; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.9rem; }
+    .box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px 24px; margin: 1.5rem 0; }
+    .box.primary { border-color: #388bfd55; }
+    .box h2 { margin-top: 0; color: #58a6ff; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.88rem; }
     th { text-align: left; color: #8b949e; font-weight: 500; border-bottom: 1px solid #30363d; padding: 6px 12px 6px 0; }
     td { padding: 5px 12px 5px 0; border-bottom: 1px solid #21262d; vertical-align: top; }
     td:first-child { color: #e6edf3; white-space: nowrap; }
-    .check { color: #3fb950; }
-    .cross { color: #f85149; }
     .links { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #21262d; color: #8b949e; font-size: 0.9rem; }
     .links a { color: #8b949e; }
     .links a:hover { color: #58a6ff; }
-    .arch { font-family: monospace; font-size: 0.85rem; line-height: 1.5; color: #8b949e; }
-    .arch strong { color: #e6edf3; }
+    .label { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .label-a { background: #388bfd22; color: #58a6ff; }
+    .label-b { background: #21262d; color: #8b949e; }
   </style>
 </head>
 <body>
 
   <h1>inFactory@ /Studio <span style="font-size:0.5em;color:#8b949e;">by</span> <a href="https://xed.dev" style="font-size:0.5em;">XED.dev</a></h1>
-  <p class="tagline">AI-Agent-First Ghost Theme Factory &mdash; from preset to production in seconds.</p>
-  <p style="margin:-1rem 0 1.5rem; font-size:0.9rem;"><a href="https://github.com/XED-dev/Studio/blob/main/docs/README.md">Full Documentation</a> &mdash; for DevOps, Designers, Copywriters &amp; Freelancers.</p>
+  <p class="tagline">CSS Subgrid Section Renderer + Puck Visual Editor &mdash; Open Source, Self-Hosted, AI-Ready.</p>
 
-  <div class="install-box">
-    <h2>Step 1 &mdash; Install as root</h2>
-    <pre><code># As root (installs CLI globally to /opt/infactory):
-curl -fsSL https://studio.xed.dev/install.sh | bash</code></pre>
-    <p style="margin:0.5rem 0 0; color:#8b949e; font-size:0.85rem;">
-      Requires: Node.js 18+ &middot; Git &middot; <a href="https://ghost.org">Ghost CMS</a> 6.x
-    </p>
-  </div>
-
-  <div class="install-box" style="border-color:#30363d;">
-    <h2>Step 2 &mdash; Setup as Ghost user</h2>
-    <pre><code># As your Ghost user (e.g. g-host):
-cd /var/ghost/your-site
-infactory install
-
-# That's it. Your AI agent can now control Ghost via API.
-infactory status</code></pre>
-    <p style="margin:0.5rem 0 0; color:#8b949e; font-size:0.85rem;">
-      All <code>infactory</code> commands run as the Ghost user, never as root.
-    </p>
-  </div>
-
-  <h2>What it does</h2>
-  <p>inFactory turns YAML preset files into production-ready Ghost themes. Define your design tokens (colors, fonts, spacing), pick sections from the library, and deploy &mdash; all from the terminal. Built for AI coding agents, not mouse clicks.</p>
-
-  <h2>Two components</h2>
+  <h2>Two Tracks, One System</h2>
   <table>
-    <tr><th>Component</th><th>Purpose</th></tr>
-    <tr><td><code>infactory-cli</code></td><td>Build Ghost themes from YAML presets. Scaffold, preview, deploy.</td></tr>
-    <tr><td><code>infactory-server</code></td><td>Factory Floor Controller on your Ghost host. REST API for remote agents.</td></tr>
+    <tr><th></th><th>Track A &mdash; <code>inFactory@ /Studio</code></th><th>Track B &mdash; <code>inFactory@ /Themes</code></th></tr>
+    <tr><td>Status</td><td><span class="label label-a">Active</span></td><td><span class="label label-b">Frozen</span></td></tr>
+    <tr><td>Purpose</td><td>5&ndash;50 pixel-perfect pages per project</td><td>Ghost blog/news/newsletter themes</td></tr>
+    <tr><td>Stack</td><td>CSS Subgrid + Payload CMS + Puck + Next.js</td><td>Ghost CLI + HBS templates + Presets</td></tr>
+    <tr><td>Delivery</td><td>NGINX/LEMP (primary) + Ghost (secondary)</td><td>Ghost themes</td></tr>
   </table>
+
+  <div class="box primary">
+    <h2>Quick Start &mdash; Install as root</h2>
+    <pre><code># inFactory Server (Express, Track A)
+curl -fsSL https://studio.xed.dev/install.sh | bash
+
+# Per-Site Setup
+curl -fsSL https://studio.xed.dev/install.sh | bash -s setup steirischursprung.at
+
+# Studio-Payload (Puck Visual Editor + Payload CMS + Next.js)
+curl -fsSL https://studio.xed.dev/payload.sh | bash
+
+# Per-Site Setup
+curl -fsSL https://studio.xed.dev/payload.sh | bash -s setup steirischursprung.at</code></pre>
+    <p style="margin:0.5rem 0 0; color:#8b949e; font-size:0.85rem;">
+      Requires: Node.js 18+ &middot; Git &middot; pnpm (auto-installed)
+    </p>
+  </div>
+
+  <div class="box">
+    <h2>Health Monitoring</h2>
+    <pre><code># Check all services
+curl -fsSL https://studio.xed.dev/health.sh | bash
+
+# Auto-fix stopped services
+curl -fsSL https://studio.xed.dev/health.sh | bash -s fix
+
+# Install crontab (every 5 minutes)
+curl -fsSL https://studio.xed.dev/health.sh | bash -s cron</code></pre>
+  </div>
+
+  <h2>SysOps Reference &mdash; All Commands</h2>
+  <table>
+    <tr><th>Script</th><th>Command</th><th>What it does</th></tr>
+    <tr><td><code>install.sh</code></td><td><code>| bash</code></td><td>Install/Update infactory-server + auto-restart services</td></tr>
+    <tr><td></td><td><code>| bash -s setup &lt;tld&gt;</code></td><td>Per-site: API-key, config, systemd, ACLs, start, health-check</td></tr>
+    <tr><td></td><td><code>| bash -s status</code></td><td>Status of all infactory-server sites</td></tr>
+    <tr><td><code>payload.sh</code></td><td><code>| bash</code></td><td>Install/Update studio-payload + migrate + build + auto-restart</td></tr>
+    <tr><td></td><td><code>| bash -s setup &lt;tld&gt;</code></td><td>Per-site: secrets, systemd, migrate, start</td></tr>
+    <tr><td></td><td><code>| bash -s status</code></td><td>Status of all studio-payload sites</td></tr>
+    <tr><td><code>health.sh</code></td><td><code>| bash</code></td><td>Health-check all services (NGINX + infactory + payload)</td></tr>
+    <tr><td></td><td><code>| bash -s fix</code></td><td>Health-check + auto-restart stopped services</td></tr>
+    <tr><td></td><td><code>| bash -s cron</code></td><td>Install crontab (5-minute health check)</td></tr>
+    <tr><td></td><td><code>| bash -s uncron</code></td><td>Remove crontab</td></tr>
+  </table>
+  <p style="color:#8b949e; font-size:0.85rem;">All scripts: <code>curl -fsSL https://studio.xed.dev/&lt;script&gt;</code></p>
 
   <h2>Architecture</h2>
-  <div style="display:flex; gap:20px; flex-wrap:wrap; margin:1.5rem 0;">
-    <div style="flex:1; min-width:200px; background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px;">
-      <div style="color:#8b949e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px;">AI Agent (terminal)</div>
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <code>Claude Code</code>
-        <code>Gemini CLI</code>
-        <code>any CLI agent</code>
-      </div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin:1.5rem 0;">
+    <div style="flex:1; min-width:180px; background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px;">
+      <div style="color:#8b949e; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">AI Agent / SysOps</div>
+      <code>Claude Code</code><br>
+      <code>curl | bash</code><br>
+      <code>Puck Editor</code>
     </div>
-    <div style="flex:0; display:flex; align-items:center; color:#58a6ff; font-size:0.85rem; white-space:nowrap; padding:0 4px;">
-      HTTPS +<br>API-Key<br><span style="font-size:1.4rem;">&rarr;</span>
+    <div style="flex:0; display:flex; align-items:center; color:#58a6ff; font-size:1.2rem; padding:0 4px;">&rarr;</div>
+    <div style="flex:1; min-width:180px; background:#161b22; border:1px solid #388bfd55; border-radius:8px; padding:16px;">
+      <div style="color:#58a6ff; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Port 4368 &mdash; infactory-server</div>
+      <code>Compile Engine</code><br>
+      <code>NGINX Target Driver</code><br>
+      <code>REST API + Health</code>
     </div>
-    <div style="flex:1.5; min-width:240px; background:#161b22; border:1px solid #388bfd55; border-radius:8px; padding:16px;">
-      <div style="color:#8b949e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">Ghost Host</div>
-      <div style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:12px; margin-top:8px;">
-        <div style="color:#58a6ff; font-size:0.85rem; font-weight:600; margin-bottom:10px;">inFactory Server v1.1</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-          <code>Theme Build+Deploy</code>
-          <code>Content CRUD</code>
-          <code>Image Migration</code>
-          <code>Visual QA (3 Sensors)</code>
-          <code>Lexical Upgrade</code>
-          <code>Reference Library</code>
-        </div>
-      </div>
+    <div style="flex:0; display:flex; align-items:center; color:#58a6ff; font-size:1.2rem; padding:0 4px;">+</div>
+    <div style="flex:1; min-width:180px; background:#161b22; border:1px solid #388bfd55; border-radius:8px; padding:16px;">
+      <div style="color:#58a6ff; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Port 5368 &mdash; studio-payload</div>
+      <code>Payload CMS 3</code><br>
+      <code>Puck Visual Editor</code><br>
+      <code>Next.js 16 SSR</code>
     </div>
   </div>
 
-  <h2>Why CLI-first?</h2>
-  <table>
-    <tr><th>Feature</th><th>XED /Studio</th><th>Others</th></tr>
-    <tr><td>CLI interface</td><td class="check">&#x2705;</td><td class="cross">&#x274C; Elementor, v0, Lovable</td></tr>
-    <tr><td>Ghost CMS native</td><td class="check">&#x2705;</td><td class="cross">&#x274C; WordPress or React only</td></tr>
-    <tr><td>AI agent as primary user</td><td class="check">&#x2705;</td><td class="cross">&#x274C; GUI-first, human-first</td></tr>
-    <tr><td>Open source (MIT)</td><td class="check">&#x2705;</td><td class="cross">&#x274C; Proprietary or GPL</td></tr>
-    <tr><td>Zero external deps for core</td><td class="check">&#x2705;</td><td class="cross">&#x274C; Heavy dependency trees</td></tr>
-  </table>
+  <h2>CSS Subgrid Section System</h2>
+  <p>Every section block produces semantic HTML with <code>g_</code>-classes &mdash; a thin layer over native CSS Subgrid. No framework classes, no inline styles for layout.</p>
+  <pre><code>&lt;section data-snippet="s_hero_split" class="g_section"&gt;
+  &lt;div class="g_grid" style="--g-cols: 12"&gt;
+    &lt;div class="g_item g_col-7" data-zone="headline" data-editable="true"&gt;
+      &lt;h1&gt;Your Headline&lt;/h1&gt;
+    &lt;/div&gt;
+    &lt;div class="g_item g_col-5" data-zone="image" data-editable="true"&gt;
+      &lt;!-- visual content --&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;</code></pre>
+  <p style="color:#8b949e; font-size:0.85rem;">Dual format: HBS (Compile Engine) + TSX (Puck Editor) produce DOM-identical output.</p>
 
-  <h2>Built-in presets</h2>
-  <table>
-    <tr><th>Preset</th><th>Use case</th><th>Sections</th></tr>
-    <tr><td><code>blog</code></td><td>Personal blog, newsletter</td><td>4</td></tr>
-    <tr><td><code>agency</code></td><td>Digital agency, studio</td><td>4</td></tr>
-    <tr><td><code>saas</code></td><td>B2B tool, startup</td><td>5</td></tr>
-    <tr><td><code>studio</code></td><td>Portfolio, multi-use</td><td>4</td></tr>
-  </table>
-
-  <h2>Server management</h2>
-  <table>
-    <tr><th>Command</th><th>What it does</th></tr>
-    <tr><td><code>infactory install</code></td><td>Setup as Ghost companion (auto-detects config)</td></tr>
-    <tr><td><code>infactory start</code></td><td>Start inFactory server</td></tr>
-    <tr><td><code>infactory stop</code></td><td>Stop inFactory server</td></tr>
-    <tr><td><code>infactory restart</code></td><td>Restart inFactory server</td></tr>
-    <tr><td><code>infactory status</code></td><td>Show Ghost + inFactory status</td></tr>
-    <tr><td><code>infactory update</code></td><td>Update to latest version</td></tr>
-    <tr><td><code>infactory ghost restart</code></td><td>Restart Ghost CMS</td></tr>
-  </table>
-  <p style="color:#8b949e; font-size:0.85rem;">Auto-sleep after 6 hours of inactivity. Wakes up on next request.</p>
-
-  <h2>Server API</h2>
+  <h2>Server API (infactory-server, Port 4368)</h2>
   <table>
     <tr><th>Endpoint</th><th>What it does</th></tr>
-    <tr><td><code>POST /api/theme/build</code></td><td>Build preset into Ghost theme ZIP</td></tr>
-    <tr><td><code>POST /api/theme/deploy</code></td><td>Build + upload + activate on Ghost</td></tr>
-    <tr><td><code>GET  /api/theme/references</code></td><td>List reference themes on server</td></tr>
-    <tr><td><code>POST /api/ghost/pages</code></td><td>Create or update a Ghost page</td></tr>
-    <tr><td><code>POST /api/ghost/pages/upgrade-lexical</code></td><td>Convert HTML to real Lexical nodes</td></tr>
-    <tr><td><code>POST /api/ghost/images/migrate</code></td><td>Migrate all images of a page to Ghost</td></tr>
-    <tr><td><code>GET  /api/ghost/images/audit</code></td><td>Find external images across all pages</td></tr>
-    <tr><td><code>POST /api/qa/compare</code></td><td>3-sensor visual QA (pixel + CSS + structure)</td></tr>
-    <tr><td><code>POST /api/qa/batch</code></td><td>Batch QA across multiple pages</td></tr>
-    <tr><td><code>GET  /api/health</code></td><td>Server + Ghost status (no auth)</td></tr>
+    <tr><td><code>GET  /xed/api/health</code></td><td>Server health + version (no auth)</td></tr>
+    <tr><td><code>GET  /xed/api/nginx/sites</code></td><td>List configured NGINX sites</td></tr>
+    <tr><td><code>POST /xed/api/nginx/write</code></td><td>Write compiled HTML to NGINX webroot</td></tr>
   </table>
-  <p style="color:#8b949e; font-size:0.85rem;">24 endpoints total. See <a href="https://github.com/XED-dev/Studio/blob/main/docs/README.md">full documentation</a>.</p>
+  <p style="color:#8b949e; font-size:0.85rem;">All endpoints except health require <code>X-API-Key</code> header.</p>
+
+  <h2>Repositories</h2>
+  <table>
+    <tr><th>Repo</th><th>Purpose</th></tr>
+    <tr><td><a href="https://github.com/XED-dev/Studio">XED-dev/Studio</a></td><td>infactory-cli + infactory-server + install.sh + payload.sh + health.sh</td></tr>
+    <tr><td><a href="https://github.com/XED-dev/Studio-Payload">XED-dev/Studio-Payload</a></td><td>dd-starter fork with Payload CMS + Puck + SQLite + g_-classes blocks</td></tr>
+  </table>
 
   <div class="links">
-    <a href="https://github.com/XED-dev/Studio/blob/main/docs/README.md">Documentation</a>
-    <a href="https://github.com/XED-dev/Studio">GitHub</a>
-    <a href="https://infactory.at">inFactory.at</a>
+    <a href="https://github.com/XED-dev/Studio">GitHub (Studio)</a>
+    <a href="https://github.com/XED-dev/Studio-Payload">GitHub (Payload)</a>
     <a href="https://github.com/XED-dev/Studio/blob/main/LICENSE">MIT License</a>
     <a href="https://xed.dev">XED.dev</a>
-    <a href="https://ghost.org">Ghost CMS</a>
+    <a href="https://collective-context.org">Collective Context</a>
   </div>
 
   <p style="color:#484f58; font-size:0.8rem; margin-top:1.5rem; text-align:center;">
-    inFactory@ /Studio by <a href="https://xed.dev" style="color:#484f58;">XED.dev</a>
+    inFactory@ /Studio v1.3.0 &mdash; <a href="https://xed.dev" style="color:#484f58;">XED.dev</a> &mdash; MIT License
   </p>
 
 </body>
