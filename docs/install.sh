@@ -311,16 +311,22 @@ RESTARTED=0
 for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
   [ -f "$SITE_BASE/$d/infactory.json" ] || continue
   svc="infactory-${d//./-}"
+  # Restart aktive Services ODER starte gestoppte/enabled Services
   if systemctl is-active --quiet "$svc" 2>/dev/null; then
     info "Restart: $svc..."
     systemctl restart "$svc" 2>/dev/null
-    sleep 1
-    if systemctl is-active --quiet "$svc" 2>/dev/null; then
-      ok "$svc laeuft"
-      ((RESTARTED++))
-    else
-      warn "$svc Restart fehlgeschlagen — journalctl -u $svc -n 20"
-    fi
+  elif systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+    info "Start: $svc (war gestoppt)..."
+    systemctl start "$svc" 2>/dev/null
+  else
+    continue
+  fi
+  sleep 1
+  if systemctl is-active --quiet "$svc" 2>/dev/null; then
+    ok "$svc laeuft"
+    ((RESTARTED++))
+  else
+    warn "$svc Start fehlgeschlagen — journalctl -u $svc -n 20"
   fi
 done
 

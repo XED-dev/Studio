@@ -214,10 +214,9 @@ for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
   # studio-payload (hat studio-payload.env)
   if [ -f "$SITE_BASE/$d/studio-payload.env" ]; then
     # Port aus systemd Service lesen
-    local svc_name="studio-payload-${d//./-}"
-    local svc_port
-    svc_port=$(grep -oP '(?<=-p )\d+' "/etc/systemd/system/${svc_name}.service" 2>/dev/null || echo "5368")
-    check_payload_service "$d" "$svc_port"
+    sp_svc_name="studio-payload-${d//./-}"
+    sp_svc_port=$(grep -oP '(?<=-p )\d+' "/etc/systemd/system/${sp_svc_name}.service" 2>/dev/null || echo "5368")
+    check_payload_service "$d" "$sp_svc_port"
   fi
 
   echo ""
