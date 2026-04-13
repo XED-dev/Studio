@@ -209,30 +209,21 @@ UNIT
     exit 1
   fi
 
-  # ── NGINX Locations-Include generieren ──
-  local LOCATIONS_CONF="/etc/nginx/proxy/payload.conf"
-  info "NGINX Locations-Include: $LOCATIONS_CONF..."
-  if [ -f "$INSTALL_DIR/infactory-server/nginx/studio-payload-locations.conf" ]; then
-    sed "s/{{PORT}}/$PORT/g" "$INSTALL_DIR/infactory-server/nginx/studio-payload-locations.conf" > "$LOCATIONS_CONF"
-    ok "Locations-Include generiert (Port $PORT)"
-  else
-    # Fallback: Include-Datei direkt erzeugen
-    cat > "$LOCATIONS_CONF" << 'LOCEOF'
-location ^~ /studio/        { proxy_pass http://127.0.0.1:PORTPLACEHOLDER/;       include /etc/nginx/proxy/xed.conf; }
-location ^~ /_next/          { proxy_pass http://127.0.0.1:PORTPLACEHOLDER/_next/; include /etc/nginx/proxy/xed.conf; }
-location ^~ /api/            { proxy_pass http://127.0.0.1:PORTPLACEHOLDER/api/;   include /etc/nginx/proxy/xed.conf; }
-location ^~ /next/           { proxy_pass http://127.0.0.1:PORTPLACEHOLDER/next/;  include /etc/nginx/proxy/xed.conf; }
-location ^~ /media/          { proxy_pass http://127.0.0.1:PORTPLACEHOLDER/media/; include /etc/nginx/proxy/xed.conf; }
-location ^~ /__nextjs        { proxy_pass http://127.0.0.1:PORTPLACEHOLDER/__nextjs; include /etc/nginx/proxy/xed.conf; }
-LOCEOF
-    sed -i "s/PORTPLACEHOLDER/$PORT/g" "$LOCATIONS_CONF"
-    ok "Locations-Include generiert (Fallback, Port $PORT)"
+  # ── NGINX payload.conf installieren ──
+  local PAYLOAD_PROXY="/etc/nginx/proxy/payload.conf"
+  if [ -f "$INSTALL_DIR/infactory-server/nginx/payload.conf" ]; then
+    cp "$INSTALL_DIR/infactory-server/nginx/payload.conf" "$PAYLOAD_PROXY"
+    ok "NGINX Proxy-Config: $PAYLOAD_PROXY"
   fi
 
   echo ""
-  echo -e "  ${YELLOW}NGINX-Route einrichten${NC} — füge in die jam.$TLD Config ein:"
+  echo -e "  ${YELLOW}NGINX-Route einrichten${NC} (falls noch nicht vorhanden):"
+  echo -e "  Füge in die jam.$TLD Config diesen Einzeiler ein:"
   echo ""
-  echo -e "    ${BOLD}include $LOCATIONS_CONF;${NC}"
+  echo -e "    ${BOLD}location ~ ^/(studio|_next|api|next|media)(/|\$) {"
+  echo -e "        proxy_pass http://127.0.0.1:${PORT};"
+  echo -e "        include /etc/nginx/proxy/payload.conf;"
+  echo -e "    }${NC}"
   echo ""
   echo -e "  Dann: ${BOLD}nginx -t && systemctl reload nginx${NC}"
   echo ""
