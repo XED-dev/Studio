@@ -56,6 +56,7 @@ app.use('/api/ghost',  auth, require('./routes/ghost'));
 app.use('/api/qa',     auth, require('./routes/qa'));
 app.use('/api/system', auth, require('./routes/system'));
 app.use('/api/nginx',  auth, require('./routes/nginx'));   // Track B — NGINX Target
+app.use('/api/logs',   auth, require('./routes/logs'));    // Remote Log Access
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 
