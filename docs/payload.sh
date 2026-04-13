@@ -713,6 +713,62 @@ cmd_admin_reset_password() {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COMMAND: admin set-role — Rolle ändern (user ↔ admin)
+# ══════════════════════════════════════════════════════════════════════════════
+
+cmd_admin_set_role() {
+  local TLD="$1"
+  local EMAIL="$2"
+  local NEW_ROLE="$3"
+  local DB_FILE="$SITE_BASE/$TLD/payload.db"
+
+  echo ""
+  echo -e "  ${BOLD}Studio-Payload — Rolle ändern${NC}"
+  echo ""
+
+  if [ ! -f "$DB_FILE" ]; then
+    err "DB nicht gefunden: $DB_FILE"
+    exit 1
+  fi
+
+  # Rolle validieren
+  if [ "$NEW_ROLE" != "admin" ] && [ "$NEW_ROLE" != "user" ]; then
+    err "Ungültige Rolle: $NEW_ROLE (erlaubt: admin, user)"
+    exit 1
+  fi
+
+  # Prüfen ob User existiert
+  local OLD_ROLE
+  OLD_ROLE=$(sqlite3 "$DB_FILE" "SELECT role FROM users WHERE email='$EMAIL';")
+  if [ -z "$OLD_ROLE" ]; then
+    err "User $EMAIL existiert nicht."
+    cmd_admin_list "$TLD"
+    exit 1
+  fi
+
+  if [ "$OLD_ROLE" = "$NEW_ROLE" ]; then
+    ok "User $EMAIL hat bereits die Rolle: $NEW_ROLE"
+    return
+  fi
+
+  # Sicherheitscheck: Nicht den letzten Admin degradieren
+  if [ "$OLD_ROLE" = "admin" ] && [ "$NEW_ROLE" = "user" ]; then
+    local ADMIN_COUNT
+    ADMIN_COUNT=$(sqlite3 "$DB_FILE" "SELECT count(*) FROM users WHERE role='admin';")
+    if [ "$ADMIN_COUNT" -le 1 ]; then
+      err "Kann den letzten Admin-User nicht degradieren."
+      exit 1
+    fi
+  fi
+
+  sqlite3 "$DB_FILE" "UPDATE users SET role='$NEW_ROLE' WHERE email='$EMAIL';"
+  ok "$EMAIL: $OLD_ROLE → $NEW_ROLE"
+
+  echo ""
+  cmd_admin_list "$TLD"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # COMMAND: admin delete — User löschen
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -800,6 +856,14 @@ case "${1:-}" in
         fi
         cmd_admin_reset_password "$3" "$4"
         ;;
+      set-role)
+        if [ -z "${3:-}" ] || [ -z "${4:-}" ] || [ -z "${5:-}" ]; then
+          err "Verwendung: bash -s admin set-role <tld> <email> <admin|user>"
+          echo -e "     Beispiel: ${BOLD}bash /tmp/payload.sh admin set-role steirischursprung.at user@example.com admin${NC}"
+          exit 1
+        fi
+        cmd_admin_set_role "$3" "$4" "$5"
+        ;;
       delete)
         if [ -z "${3:-}" ] || [ -z "${4:-}" ]; then
           err "Verwendung: bash -s admin delete <tld> <email>"
@@ -811,10 +875,11 @@ case "${1:-}" in
         echo ""
         echo -e "  ${BOLD}Studio-Payload Admin-Befehle:${NC}"
         echo ""
-        echo "  bash /tmp/payload.sh create-admin <tld> <email>              Ersten Admin anlegen"
-        echo "  bash /tmp/payload.sh admin list <tld>                        Alle User anzeigen"
-        echo "  bash /tmp/payload.sh admin reset-password <tld> <email>      Passwort zurücksetzen"
-        echo "  bash /tmp/payload.sh admin delete <tld> <email>              User löschen"
+        echo "  bash /tmp/payload.sh create-admin <tld> <email>                    Ersten Admin anlegen"
+        echo "  bash /tmp/payload.sh admin list <tld>                              Alle User anzeigen"
+        echo "  bash /tmp/payload.sh admin set-role <tld> <email> <admin|user>     Rolle ändern"
+        echo "  bash /tmp/payload.sh admin reset-password <tld> <email>            Passwort zurücksetzen"
+        echo "  bash /tmp/payload.sh admin delete <tld> <email>                    User löschen"
         echo ""
         ;;
     esac
