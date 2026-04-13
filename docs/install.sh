@@ -491,6 +491,19 @@ sudo ln -s "$CLI_BIN" "$BIN_LINK"
 # sonst wuerde git pull / reset bei jedem Run einen dirty working tree produzieren.
 ok "infactory → $BIN_LINK"
 
+# ─── NGINX Proxy-Configs ─────────────────────────────────────────────────────
+
+PROXY_DIR="/etc/nginx/proxy"
+if [ -d "$PROXY_DIR" ]; then
+  for conf in xed.conf payload.conf; do
+    local_conf="$INSTALL_DIR/infactory-server/nginx/$conf"
+    if [ -f "$local_conf" ]; then
+      cp "$local_conf" "$PROXY_DIR/$conf"
+    fi
+  done
+  ok "NGINX Proxy-Configs: $PROXY_DIR/{xed,payload}.conf"
+fi
+
 # ─── Done ─────────────────────────────────────────────────────────────────────
 
 # Versionen aus package.json lesen (lebt im Repo, statt im install.sh hardcoded).
