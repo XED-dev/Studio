@@ -158,6 +158,21 @@ require('fs').writeFileSync('$ENV_FILE', lines.join('\\n') + '\\n');
     exit 1
   }
 
+  # ── DB-Permissions (migrate laeuft als root, Service als g-host) ──
+  local DB_FILE="$SITE_DIR/payload.db"
+  if [ -f "$DB_FILE" ]; then
+    chown g-host:g-host "$DB_FILE"
+    chmod 664 "$DB_FILE"
+    # SQLite WAL/SHM Dateien (falls vorhanden)
+    for ext in -wal -shm; do
+      if [ -f "${DB_FILE}${ext}" ]; then
+        chown g-host:g-host "${DB_FILE}${ext}"
+        chmod 664 "${DB_FILE}${ext}"
+      fi
+    done
+    ok "DB-Permissions: g-host:g-host 664"
+  fi
+
   # ── systemd Service ──
   local SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
   info "Schreibe systemd Service auf Port $PORT..."
@@ -351,6 +366,12 @@ cmd_install() {
       cd "$INSTALL_DIR"
       set -a; source "$SITE_BASE/$d/studio-payload.env"; set +a
       pnpm payload migrate 2>/dev/null && ok "Migrate $d erfolgreich" || warn "Migrate $d fehlgeschlagen"
+      # DB-Permissions (migrate laeuft als root, Service als g-host)
+      local DB_UP="$SITE_BASE/$d/payload.db"
+      if [ -f "$DB_UP" ]; then
+        chown g-host:g-host "$DB_UP" "${DB_UP}-wal" "${DB_UP}-shm" 2>/dev/null
+        chmod 664 "$DB_UP" "${DB_UP}-wal" "${DB_UP}-shm" 2>/dev/null
+      fi
       migrated=$((migrated + 1))
     fi
   done
