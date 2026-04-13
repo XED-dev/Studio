@@ -471,6 +471,89 @@ cmd_install() {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COMMAND: create-admin — Ersten Admin-User anlegen
+# ══════════════════════════════════════════════════════════════════════════════
+
+cmd_create_admin() {
+  local TLD="$1"
+  local EMAIL="$2"
+  local PASSWORD="$3"
+  local NAME="${4:-Admin}"
+  local SITE_DIR="$SITE_BASE/$TLD"
+  local ENV_FILE="$SITE_DIR/studio-payload.env"
+
+  echo ""
+  echo -e "  ${BOLD}Studio-Payload — Admin-User anlegen${NC}"
+  echo ""
+
+  if [ ! -f "$ENV_FILE" ]; then
+    err "Site $TLD nicht eingerichtet. Zuerst: payload.sh setup $TLD"
+    exit 1
+  fi
+
+  # Port ermitteln
+  local PORT=$(tld_to_port "$TLD")
+
+  # Pruefen ob Service laeuft
+  local SVC=$(tld_to_service "$TLD")
+  if ! systemctl is-active --quiet "$SVC" 2>/dev/null; then
+    err "$SVC laeuft nicht. Zuerst: systemctl start $SVC"
+    exit 1
+  fi
+
+  # User via better-auth API anlegen
+  info "Erstelle Admin-User: $EMAIL..."
+  local RESPONSE
+  RESPONSE=$(curl -sf "http://127.0.0.1:$PORT/api/auth/sign-up/email" -X POST \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"name\":\"$NAME\"}" 2>/dev/null) || {
+    err "Signup fehlgeschlagen"
+    echo "  Antwort: $RESPONSE"
+    exit 1
+  }
+
+  local USER_ID
+  USER_ID=$(echo "$RESPONSE" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).user.id)}catch{console.log('')}})" 2>/dev/null)
+
+  if [ -z "$USER_ID" ]; then
+    # Pruefen ob User bereits existiert
+    if echo "$RESPONSE" | grep -q "ALREADY_EXISTS"; then
+      warn "User $EMAIL existiert bereits"
+    else
+      err "User-Erstellung fehlgeschlagen: $RESPONSE"
+      exit 1
+    fi
+  else
+    ok "User erstellt: ID $USER_ID"
+  fi
+
+  # Rolle auf admin setzen via SQLite (better-auth hat keinen Admin-Role-API-Endpoint)
+  local DB_FILE="$SITE_DIR/payload.db"
+  if [ -f "$DB_FILE" ]; then
+    sqlite3 "$DB_FILE" "UPDATE users SET role='admin' WHERE email='$EMAIL';"
+    local ROLE
+    ROLE=$(sqlite3 "$DB_FILE" "SELECT role FROM users WHERE email='$EMAIL';")
+    if [ "$ROLE" = "admin" ]; then
+      ok "Rolle gesetzt: admin"
+    else
+      err "Rolle konnte nicht gesetzt werden (aktuell: $ROLE)"
+      exit 1
+    fi
+  else
+    err "DB nicht gefunden: $DB_FILE"
+    exit 1
+  fi
+
+  echo ""
+  echo -e "  ${GREEN}${BOLD}Admin-User angelegt!${NC}"
+  echo ""
+  echo "  Email:    $EMAIL"
+  echo "  Rolle:    admin"
+  echo "  Login:    https://jam.$TLD/studio/admin/login"
+  echo ""
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MAIN — Dispatcher
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -483,6 +566,14 @@ case "${1:-}" in
     fi
     check_deps
     cmd_setup "$2"
+    ;;
+  create-admin)
+    if [ -z "${2:-}" ] || [ -z "${3:-}" ] || [ -z "${4:-}" ]; then
+      err "Verwendung: bash -s create-admin <tld> <email> <password> [name]"
+      echo -e "     Beispiel: ${BOLD}curl -fsSL https://studio.xed.dev/payload.sh | bash -s create-admin steirischursprung.at admin@example.com MySecurePass123${NC}"
+      exit 1
+    fi
+    cmd_create_admin "$2" "$3" "$4" "${5:-Admin}"
     ;;
   status)
     cmd_status
