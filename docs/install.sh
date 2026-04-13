@@ -239,12 +239,11 @@ UNIT
   fi
 
   # Health-Check
-  health=$(curl -sf "http://127.0.0.1:$INF_PORT/xed/api/health" 2>/dev/null)
-  if [ $? -eq 0 ]; then
+  if health=$(curl -sf "http://127.0.0.1:$INF_PORT/xed/api/health" 2>/dev/null); then
     version=$(echo "$health" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).server.version)}catch{console.log('?')}})" 2>/dev/null || echo "?")
     ok "/xed/api/health → v$version"
   else
-    warn "/xed/api/health nicht erreichbar (Service laeuft, API evtl. noch beim Starten)"
+    warn "/xed/api/health nicht erreichbar (pruefe: curl -v http://127.0.0.1:$INF_PORT/xed/api/health)"
   fi
 
   # NGINX Hinweis
