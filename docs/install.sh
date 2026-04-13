@@ -494,14 +494,9 @@ ok "infactory → $BIN_LINK"
 # ─── NGINX Proxy-Configs ─────────────────────────────────────────────────────
 
 PROXY_DIR="/etc/nginx/proxy"
-if [ -d "$PROXY_DIR" ]; then
-  for conf in xed.conf payload.conf; do
-    local_conf="$INSTALL_DIR/infactory-server/nginx/$conf"
-    if [ -f "$local_conf" ]; then
-      cp "$local_conf" "$PROXY_DIR/$conf"
-    fi
-  done
-  ok "NGINX Proxy-Configs: $PROXY_DIR/{xed,payload}.conf"
+if [ -d "$PROXY_DIR" ] && [ -f "$INSTALL_DIR/infactory-server/nginx/xed.conf" ]; then
+  cp "$INSTALL_DIR/infactory-server/nginx/xed.conf" "$PROXY_DIR/xed.conf"
+  ok "NGINX Proxy-Config: $PROXY_DIR/xed.conf"
 fi
 
 # ─── Done ─────────────────────────────────────────────────────────────────────

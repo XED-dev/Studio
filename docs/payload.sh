@@ -209,11 +209,10 @@ UNIT
     exit 1
   fi
 
-  # ── NGINX payload.conf installieren ──
-  local PAYLOAD_PROXY="/etc/nginx/proxy/payload.conf"
-  if [ -f "$INSTALL_DIR/infactory-server/nginx/payload.conf" ]; then
-    cp "$INSTALL_DIR/infactory-server/nginx/payload.conf" "$PAYLOAD_PROXY"
-    ok "NGINX Proxy-Config: $PAYLOAD_PROXY"
+  # ── NGINX xed.conf prüfen ──
+  if [ ! -f "/etc/nginx/proxy/xed.conf" ]; then
+    warn "NGINX Proxy-Config fehlt: /etc/nginx/proxy/xed.conf"
+    echo "  Zuerst ausführen: curl -fsSL https://studio.xed.dev/install.sh | bash"
   fi
 
   echo ""
@@ -222,7 +221,7 @@ UNIT
   echo ""
   echo -e "    ${BOLD}location ~ ^/(studio|_next|api|next|media)(/|\$) {"
   echo -e "        proxy_pass http://127.0.0.1:${PORT};"
-  echo -e "        include /etc/nginx/proxy/payload.conf;"
+  echo -e "        include /etc/nginx/proxy/xed.conf;"
   echo -e "    }${NC}"
   echo ""
   echo -e "  Dann: ${BOLD}nginx -t && systemctl reload nginx${NC}"
