@@ -1,14 +1,30 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────────────
-# inFactory — AI-Agent-First Ghost Theme Factory
+# inFactory — Hybrid Bootstrap (CLI-M4 e)
 #
-# Verwendung:
+# Dieses Skript ist BEWUSST NICHT rein Bootstrap-Wrapper. Es kann nicht, weil
+# Teile der Install-Logik die CLI selbst installieren (Chicken-and-egg): git-clone,
+# npm install, Python venv, Playwright, MIT-Theme-Import. Diese Bootstrap-Arbeit
+# bleibt in Bash.
+#
+# Was an die oclif-CLI (infactory-cli-v2/) delegiert wird:
+#   - `install.sh status`               → infactory health
+#   - Service-Restart nach Update       → infactory server restart
+#
+# Was in Bash bleibt:
+#   - Dependency-Check (node/git/npm)
+#   - git clone + npm install für BEIDE CLIs (alt für Track-B, neu für Track-A)
+#   - Symlink /usr/local/bin/infactory → infactory-cli-v2/bin/run.js
+#   - Python venv + Playwright (Track-B QA-Tools)
+#   - MIT-Theme-Referenzbibliothek (Track-B)
+#   - NGINX xed.conf kopieren
+#   - `install.sh setup <tld>`          — Track-A infactory-Setup
+#                                         (Portierung offen als CLI-M3.6)
+#
+# Verwendung (unverändert zur Bash-Vorgängerversion):
 #   curl -fsSL https://studio.xed.dev/install.sh | bash              # Install/Update
-#   curl -fsSL https://studio.xed.dev/install.sh | bash -s status    # Status aller Services
-#
-# Health-Check fuer ALLE Services (infactory + studio-payload + nginx):
-#   curl -fsSL https://studio.xed.dev/health.sh | bash               # Pruefen
-#   curl -fsSL https://studio.xed.dev/health.sh | bash -s fix        # Pruefen + Auto-Fix
+#   curl -fsSL https://studio.xed.dev/install.sh | bash -s status    # Status (→ v2 health)
+#   curl -fsSL https://studio.xed.dev/install.sh | bash -s setup <tld>   # Track-A Setup
 # ──────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -16,70 +32,45 @@ set -euo pipefail
 REPO="https://github.com/XED-dev/Studio.git"
 INSTALL_DIR="/opt/infactory"
 BIN_LINK="/usr/local/bin/infactory"
+INFACTORY_V2_BIN="$INSTALL_DIR/infactory-cli-v2/bin/run.js"
+NODE_BIN="/usr/bin/node"
 VENV_DIR="$INSTALL_DIR/venv"
 REFERENCES_DIR="$INSTALL_DIR/references"
+SITE_BASE="/var/xed"
 
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 BOLD='\033[1m'
 NC='\033[0m'
-
-YELLOW='\033[0;33m'
 
 info()  { echo -e "  ${BLUE}→${NC} $1"; }
 ok()    { echo -e "  ${GREEN}✔${NC} $1"; }
 warn()  { echo -e "  ${YELLOW}⚠${NC} $1"; }
 err()   { echo -e "  ${RED}✗${NC} $1" >&2; }
 
-SITE_BASE="/var/xed"
-
-# ── Subcommand: status ───────────────────────────────────────────────────────
+# ── Subcommand: status → Delegation an v2 ───────────────────────────────────
 
 if [ "${1:-}" = "status" ]; then
-  echo ""
-  echo -e "  ${BOLD}inFactory Status${NC}"
-  echo ""
-
-  if [ -d "$INSTALL_DIR" ]; then
-    CLI_VER=$(node -p "require('$INSTALL_DIR/infactory-cli/package.json').version" 2>/dev/null || echo "?")
-    SRV_VER=$(node -p "require('$INSTALL_DIR/infactory-server/package.json').version" 2>/dev/null || echo "?")
-    HEAD=$(cd "$INSTALL_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "?")
-    echo "  Code: CLI v${CLI_VER}, Server v${SRV_VER} (${HEAD})"
-  else
-    err "Nicht installiert: $INSTALL_DIR"
+  if [ ! -f "$INFACTORY_V2_BIN" ]; then
+    err "inFactory CLI v2 nicht gefunden: $INFACTORY_V2_BIN"
+    echo ""
+    echo "  Zuerst installieren:"
+    echo -e "    ${BOLD}curl -fsSL https://studio.xed.dev/install.sh | bash${NC}"
+    echo ""
     exit 1
   fi
-  echo ""
-
-  for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
-    [ -f "$SITE_BASE/$d/infactory.json" ] || continue
-    local_port=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$SITE_BASE/$d/infactory.json')).port||4368)}catch{console.log(4368)}" 2>/dev/null || echo "4368")
-    svc="infactory-${d//./-}"
-    status="${RED}DOWN${NC}"
-    systemctl is-active --quiet "$svc" 2>/dev/null && status="${GREEN}active${NC}"
-    echo -e "  ${BOLD}$d${NC}  Port $local_port  [$status]  $svc"
-
-    # Health-Check
-    if systemctl is-active --quiet "$svc" 2>/dev/null; then
-      health=$(curl -sf "http://127.0.0.1:$local_port/xed/api/health" 2>/dev/null)
-      if [ $? -eq 0 ]; then
-        version=$(echo "$health" | node -e "process.stdin.on('data',d=>{try{console.log(JSON.parse(d).server.version)}catch{console.log('?')}})" 2>/dev/null || echo "?")
-        ok "  /xed/api/health → v$version"
-      else
-        warn "  /xed/api/health nicht erreichbar"
-      fi
-    fi
-  done
-  echo ""
-  echo -e "  Vollstaendiger Health-Check (alle Services):"
-  echo -e "    ${BOLD}curl -fsSL https://studio.xed.dev/health.sh | bash${NC}"
-  echo ""
-  exit 0
+  # exec ersetzt Bash-Prozess durch node — Exit-Code + Signals propagieren 1:1
+  exec "$NODE_BIN" "$INFACTORY_V2_BIN" health
 fi
 
-# ── Subcommand: setup <tld> ──────────────────────────────────────────────────
+# ── Subcommand: setup <tld> — Track-A infactory-Setup (bleibt Bash) ─────────
+# Portierung zu `infactory site create-infactory <tld>` oder ähnlich ist ein
+# eigener Roadmap-Punkt CLI-M3.6. Die Logik hat genug Besonderheiten
+# (nginx_sites-JSON, Subdomain-Autodetect, WordOps-ACLs) dass eine eigene
+# Scope-Entscheidung sinnvoll ist.
 
 if [ "${1:-}" = "setup" ]; then
   TLD="${2:-}"
@@ -152,13 +143,11 @@ if [ "${1:-}" = "setup" ]; then
   # infactory.json schreiben (idempotent — bestehende Keys behalten)
   info "Schreibe $CFG_FILE..."
 
-  # Venv/References Pfade pruefen
   VENV_PATH=""
   [ -f "/opt/infactory/venv/bin/python3" ] && VENV_PATH="/opt/infactory/venv"
   REFS_PATH=""
   [ -d "/opt/infactory/references" ] && REFS_PATH="/opt/infactory/references"
 
-  # nginx_sites JSON bauen (pro Site ein Eintrag)
   SITES_JSON="{"
   SITES_IDX=0
   for wwwdir in /var/www/*."$TLD"/htdocs /var/www/"$TLD"/htdocs; do
@@ -258,7 +247,6 @@ UNIT
   echo -e "  Dann: ${BOLD}nginx -t && systemctl reload nginx${NC}"
   echo ""
 
-  # Zusammenfassung
   HEAD_SHORT=$(cd "$INSTALL_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "?")
   echo -e "  ${GREEN}${BOLD}Setup abgeschlossen!${NC}"
   echo ""
@@ -272,7 +260,9 @@ UNIT
   exit 0
 fi
 
-# ── Hauptprogramm: Install/Update ────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# Hauptprogramm: Install/Update
+# ══════════════════════════════════════════════════════════════════════════════
 
 echo ""
 echo -e "  ${BOLD}inFactory${NC} — Studio.XED.dev"
@@ -281,7 +271,6 @@ echo ""
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
 
-# Node.js
 if ! command -v node &>/dev/null; then
   err "Node.js nicht gefunden."
   echo "     Install: https://nodejs.org/ (v18+)"
@@ -296,30 +285,27 @@ if [ "$NODE_MAJOR" -lt 18 ]; then
 fi
 ok "Node.js $(node --version)"
 
-# Git
 if ! command -v git &>/dev/null; then
   err "Git nicht gefunden. Install: sudo apt install -y git"
   exit 1
 fi
 ok "Git $(git --version | cut -d' ' -f3)"
 
-# npm
 if ! command -v npm &>/dev/null; then
   err "npm nicht gefunden."
   exit 1
 fi
 ok "npm $(npm --version)"
 
-# ─── Install ──────────────────────────────────────────────────────────────────
+# ─── Install / Update Code ────────────────────────────────────────────────────
 
-# Check if already installed
 if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/infactory-cli/bin/infactory.js" ]; then
   info "Bestehende Installation gefunden — Update..."
   cd "$INSTALL_DIR"
 
   # Server-Deploy-Pattern: fetch + reset --hard origin/main.
-  # Kein merge, kein rebase — lokale Mods an getrackten Files sind unerwuenscht und werden verworfen.
-  # Untracked files (venv/, browsers/, references/, package-lock.json) bleiben unberuehrt.
+  # Kein merge, kein rebase. Untracked files (venv/, browsers/, references/,
+  # package-lock.json) bleiben unberuehrt.
   if ! git fetch --quiet origin main; then
     err "git fetch origin main fehlgeschlagen — ist $INSTALL_DIR noch ein git repo?"
     exit 1
@@ -334,15 +320,9 @@ if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/infactory-cli/bin/infactory.js" ]
   else
     ok "Bereits aktuell: $NEW_HEAD"
   fi
-
-  cd infactory-cli && npm install --omit=dev --silent 2>/dev/null
-  cd ../infactory-server && npm install --omit=dev --silent 2>/dev/null
-  cd ..
-  ok "Dependencies installiert"
 else
   info "Installiere nach $INSTALL_DIR..."
 
-  # Create directory (may need sudo)
   if [ ! -d "$INSTALL_DIR" ]; then
     if [ -w "$(dirname $INSTALL_DIR)" ]; then
       mkdir -p "$INSTALL_DIR"
@@ -352,18 +332,35 @@ else
     fi
   fi
 
-  # Clone
   git clone --depth 1 "$REPO" "$INSTALL_DIR" 2>/dev/null
   ok "Code geklont"
-
-  # npm install
-  info "Dependencies installieren..."
-  cd "$INSTALL_DIR/infactory-cli" && npm install --omit=dev --silent 2>/dev/null
-  cd "$INSTALL_DIR/infactory-server" && npm install --omit=dev --silent 2>/dev/null
-  ok "Dependencies installiert"
 fi
 
-# ─── Python venv (QA-Tools) ───────────────────────────────────────────────────
+# ─── npm install für alle drei Code-Bases ────────────────────────────────────
+# alte CLI (Track-B Legacy): infactory-cli/  + infactory-server/
+# neue CLI (Track-A aktiv):   infactory-cli-v2/
+
+info "Dependencies installieren..."
+cd "$INSTALL_DIR/infactory-cli" && npm install --omit=dev --silent 2>/dev/null
+ok "infactory-cli (alt, Track-B Legacy)"
+cd "$INSTALL_DIR/infactory-server" && npm install --omit=dev --silent 2>/dev/null
+ok "infactory-server"
+
+if [ -d "$INSTALL_DIR/infactory-cli-v2" ] && [ -f "$INSTALL_DIR/infactory-cli-v2/package.json" ]; then
+  cd "$INSTALL_DIR/infactory-cli-v2"
+  # v2 braucht devDependencies (typescript, oclif) fuer den Build
+  npm install --silent 2>/dev/null
+  # tsc-Build fuer dist/
+  if npm run build --silent 2>/dev/null; then
+    ok "infactory-cli-v2 (neu, Track-A aktiv — Build: dist/ erzeugt)"
+  else
+    warn "infactory-cli-v2 Build fehlgeschlagen — CLI läuft im ts-node Modus"
+  fi
+else
+  warn "infactory-cli-v2/ nicht im Repo — nur alte CLI installiert"
+fi
+
+# ─── Python venv (QA-Tools für Track-B) ──────────────────────────────────────
 
 info "Python venv für QA-Tools..."
 
@@ -391,22 +388,17 @@ else
       ok "shot-scraper + crawl4ai installiert"
     fi
 
-    # Playwright Browser in gemeinsames Verzeichnis installieren
-    # PLAYWRIGHT_BROWSERS_PATH sorgt dafuer dass ALLE User (root, g-host, etc.)
-    # die gleichen Browser finden — unabhaengig davon wer install.sh ausfuehrt.
     export PLAYWRIGHT_BROWSERS_PATH="$INSTALL_DIR/browsers"
     mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
 
-    info "Playwright Browser installieren (nach $PLAYWRIGHT_BROWSERS_PATH)..."
+    info "Playwright Browser installieren..."
     "$VENV_DIR/bin/python3" -m playwright install chromium 2>/dev/null && ok "Playwright Chromium installiert" || {
       echo "     ⚠  Playwright-Installation fehlgeschlagen."
       echo "     Manuell: PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH $VENV_DIR/bin/python3 -m playwright install chromium"
     }
 
-    # Lesbar fuer alle User (Ghost-User braucht Zugriff)
     chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH"
 
-    # Playwright System-Dependencies (braucht root)
     info "Playwright System-Dependencies..."
     "$VENV_DIR/bin/python3" -m playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
       if command -v npx &>/dev/null; then
@@ -419,13 +411,12 @@ else
   fi
 fi
 
-# ─── Referenz-Themes (MIT) ────────────────────────────────────────────────────
+# ─── Referenz-Themes (MIT, Track-B) ──────────────────────────────────────────
 
 info "Referenz-Themes (MIT-Bibliothek)..."
 
 mkdir -p "$REFERENCES_DIR/mit"
 
-# MIT-Themes: Offizielle TryGhost-Themes + Community-Highlights
 MIT_THEMES=(
   "TryGhost/Casper"
   "TryGhost/Starter"
@@ -449,7 +440,6 @@ MIT_THEMES=(
   "eddiesigner/liebling"
 )
 
-# Kein interaktives Credential-Prompt bei fehlenden Repos
 export GIT_TERMINAL_PROMPT=0
 
 CLONED=0
@@ -465,31 +455,45 @@ for theme in "${MIT_THEMES[@]}"; do
       CLONED=$((CLONED + 1))
     else
       SKIPPED=$((SKIPPED + 1))
-      [ -d "$dir" ] && rm -rf "$dir"  # Leere Verzeichnisse aufräumen
+      [ -d "$dir" ] && rm -rf "$dir"  # NUR leere Clone-Verzeichnisse aufräumen
     fi
   fi
 done
 ok "MIT-Themes: $CLONED neu, $UPDATED aktualisiert, $SKIPPED übersprungen (${#MIT_THEMES[@]} gesamt)"
 
-# Themex-Verzeichnis vorbereiten (wird manuell befüllt via infactory import-references)
 mkdir -p "$REFERENCES_DIR/themex"
 if [ ! -f "$REFERENCES_DIR/themex/.gitkeep" ]; then
   touch "$REFERENCES_DIR/themex/.gitkeep"
 fi
 
-# ─── Symlink ──────────────────────────────────────────────────────────────────
+# ─── Symlink: zeigt auf v2 (CLI-M4 Cut-Over) ─────────────────────────────────
 
-CLI_BIN="$INSTALL_DIR/infactory-cli/bin/infactory.js"
-
-if [ -L "$BIN_LINK" ] || [ -f "$BIN_LINK" ]; then
-  info "Symlink existiert — aktualisiere..."
-  sudo rm -f "$BIN_LINK"
+if [ -f "$INFACTORY_V2_BIN" ]; then
+  CLI_TARGET="$INFACTORY_V2_BIN"
+  CLI_LABEL="v2 (oclif, Track-A aktiv)"
+else
+  # Fallback: wenn v2-Build fehlschlug, alte CLI als Symlink
+  CLI_TARGET="$INSTALL_DIR/infactory-cli/bin/infactory.js"
+  CLI_LABEL="v1 (alte CLI — v2 nicht verfuegbar)"
 fi
 
-sudo ln -s "$CLI_BIN" "$BIN_LINK"
-# Kein chmod +x — der Mode 100755 ist jetzt im git index verankert,
-# sonst wuerde git pull / reset bei jedem Run einen dirty working tree produzieren.
-ok "infactory → $BIN_LINK"
+# Test-Modus: INFACTORY_KEEP_SYMLINK=1 überspringt den Symlink-Cut-Over.
+# Sinn: CLI-M4 Server-Test kann v2 zusätzlich installieren, ohne dass der
+# globale `infactory`-Command sofort auf die neue CLI zeigt. So bleibt der
+# produktive Pfad intakt bis zum expliziten Cut-Over durch den Human DevOps.
+if [ "${INFACTORY_KEEP_SYMLINK:-}" = "1" ]; then
+  CURRENT=$(readlink "$BIN_LINK" 2>/dev/null || echo "?")
+  warn "INFACTORY_KEEP_SYMLINK=1 — Symlink unverändert: $BIN_LINK → $CURRENT"
+  warn "CLI-M4 Test-Modus. Cut-Over manuell mit: sudo ln -sf \"$CLI_TARGET\" \"$BIN_LINK\""
+else
+  if [ -L "$BIN_LINK" ] || [ -f "$BIN_LINK" ]; then
+    info "Symlink existiert — aktualisiere..."
+    sudo rm -f "$BIN_LINK"
+  fi
+
+  sudo ln -s "$CLI_TARGET" "$BIN_LINK"
+  ok "infactory → $BIN_LINK  [$CLI_LABEL]"
+fi
 
 # ─── NGINX Proxy-Configs ─────────────────────────────────────────────────────
 
@@ -499,64 +503,53 @@ if [ -d "$PROXY_DIR" ] && [ -f "$INSTALL_DIR/infactory-server/nginx/xed.conf" ];
   ok "NGINX Proxy-Config: $PROXY_DIR/xed.conf"
 fi
 
-# ─── Done ─────────────────────────────────────────────────────────────────────
-
-# Versionen aus package.json lesen (lebt im Repo, statt im install.sh hardcoded).
-CLI_VERSION=$(node -p "require('$INSTALL_DIR/infactory-cli/package.json').version" 2>/dev/null || echo "?")
-SERVER_VERSION=$(node -p "require('$INSTALL_DIR/infactory-server/package.json').version" 2>/dev/null || echo "?")
-HEAD_SHORT=$(cd "$INSTALL_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "?")
-
-# ─── Restart laufende infactory-Services ─────────────────────────────────────
+# ─── Service-Restart → Delegation an v2 ──────────────────────────────────────
+# `infactory server restart` iteriert alle konfigurierten infactory-Services
+# (Multi-Site) und startet sie neu. Aktive Services: restart. Gestoppte aber
+# enabled: startet via systemctl restart (akzeptiert beide Zustaende).
 
 RESTARTED=0
-for d in $(ls -1 "$SITE_BASE" 2>/dev/null | sort); do
-  [ -f "$SITE_BASE/$d/infactory.json" ] || continue
-  svc="infactory-${d//./-}"
-  # Restart aktive Services ODER starte gestoppte/enabled Services
-  if systemctl is-active --quiet "$svc" 2>/dev/null; then
-    info "Restart: $svc..."
-    systemctl restart "$svc" 2>/dev/null
-  elif systemctl is-enabled --quiet "$svc" 2>/dev/null; then
-    info "Start: $svc (war gestoppt)..."
-    systemctl start "$svc" 2>/dev/null
-  else
-    continue
-  fi
-  sleep 1
-  if systemctl is-active --quiet "$svc" 2>/dev/null; then
-    ok "$svc laeuft"
-    RESTARTED=$((RESTARTED + 1))
-  else
-    warn "$svc Start fehlgeschlagen — journalctl -u $svc -n 20"
-  fi
-done
+if [ -f "$INFACTORY_V2_BIN" ]; then
+  info "Service-Restart via 'infactory server restart'..."
+  # Einmal aufrufen; Exit-Code nicht propagieren (Update soll trotz einzelner
+  # Failures abschliessen — Fehler werden in der CLI-Ausgabe gezeigt).
+  "$NODE_BIN" "$INFACTORY_V2_BIN" server restart || true
+  RESTARTED=1
+else
+  warn "v2-CLI nicht verfuegbar — Service-Restart uebersprungen."
+fi
+
+# ─── Zusammenfassung ─────────────────────────────────────────────────────────
+
+CLI_VERSION=$(node -p "require('$INSTALL_DIR/infactory-cli/package.json').version" 2>/dev/null || echo "?")
+SERVER_VERSION=$(node -p "require('$INSTALL_DIR/infactory-server/package.json').version" 2>/dev/null || echo "?")
+CLI_V2_VERSION=$(node -p "require('$INSTALL_DIR/infactory-cli-v2/package.json').version" 2>/dev/null || echo "-")
+HEAD_SHORT=$(cd "$INSTALL_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "?")
 
 echo ""
 echo -e "  ${GREEN}${BOLD}Installation abgeschlossen!${NC}"
 echo ""
-echo "  CLI:     v${CLI_VERSION}"
-echo "  Server:  v${SERVER_VERSION}"
-echo "  Commit:  ${HEAD_SHORT}"
-echo "  Pfad:    $INSTALL_DIR/"
-[ -d "$VENV_DIR/bin" ] && echo "  Venv:    $VENV_DIR/"
-echo "  Refs:    $REFERENCES_DIR/"
-[ "$RESTARTED" -gt 0 ] && echo "  Restart: $RESTARTED Service(s) neugestartet"
+echo "  CLI:       v${CLI_VERSION} (alt, Track-B)"
+echo "  CLI v2:    v${CLI_V2_VERSION} (neu, Track-A aktiv)"
+echo "  Server:    v${SERVER_VERSION}"
+echo "  Commit:    ${HEAD_SHORT}"
+echo "  Pfad:      $INSTALL_DIR/"
+[ -d "$VENV_DIR/bin" ] && echo "  Venv:      $VENV_DIR/"
+echo "  Refs:      $REFERENCES_DIR/"
+echo "  Symlink:   $BIN_LINK → $CLI_TARGET"
+[ "$RESTARTED" = "1" ] && echo "  Restart:   via 'infactory server restart' (siehe Ausgabe oben)"
 echo ""
-echo -e "  ${BOLD}Nächster Schritt — pro Site:${NC}"
+echo -e "  ${BOLD}Nächste Schritte:${NC}"
 echo ""
-echo "  Track A (LEMP Section-Renderer — aktiv):"
-echo -e "    ${BOLD}mkdir -p /var/xed/<tld> && chown -R g-host:g-host /var/xed/<tld>${NC}"
-echo -e "    ${BOLD}su - g-host -c 'cd /var/xed/<tld> && infactory install'${NC}"
+echo "  Status (alle Services):"
+echo -e "    ${BOLD}infactory health${NC}"
 echo ""
-echo "  Track B (Ghost Theme Factory — eingefroren):"
-echo -e "    ${BOLD}cd /var/ghost/<domain> && infactory install${NC}"
+echo "  Track A — Site einrichten:"
+echo -e "    ${BOLD}curl -fsSL https://studio.xed.dev/install.sh | bash -s setup <tld>${NC}"
 echo ""
-echo "  Lizenzierte Themes importieren:"
-echo -e "    ${BOLD}infactory import-references --url=https://nextcloud.example.com/s/abc/download${NC}"
+echo "  Studio-Payload (Puck Visual Editor):"
+echo -e "    ${BOLD}curl -fsSL https://studio.xed.dev/payload.sh | bash${NC}"
 echo ""
 echo -e "  Docs:   ${BLUE}https://studio.xed.dev${NC}"
 echo -e "  GitHub: ${BLUE}https://github.com/XED-dev/Studio${NC}"
-echo ""
-echo -e "  ${BOLD}Studio-Payload (Puck Visual Editor):${NC}"
-echo -e "    ${BOLD}curl -fsSL https://studio.xed.dev/payload.sh | bash${NC}"
 echo ""
