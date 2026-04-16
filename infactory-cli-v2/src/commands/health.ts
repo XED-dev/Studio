@@ -49,18 +49,22 @@ function checkInfactoryService(
     }
   }
 
-  // Health-Endpunkt prüfen
+  // Health-Endpunkt prüfen.
+  // WICHTIG: Direkt an 127.0.0.1:port, OHNE `/xed/` Prefix — der Express-Server
+  // mountet die Routes auf `/api/*`. Das `/xed/` sieht nur NGINX (Regel:
+  // `location /xed/ { proxy_pass http://127.0.0.1:PORT/; }` strippt `/xed/`
+  // beim Proxy-Pass). Lokal ohne NGINX heisst der Pfad `/api/health`.
   if (isServiceActive(svc)) {
-    const body = httpGet(`http://127.0.0.1:${port}/xed/api/health`)
+    const body = httpGet(`http://127.0.0.1:${port}/api/health`)
     if (body) {
       let version = '?'
       try {
         version = JSON.parse(body).server?.version ?? '?'
       } catch { /* ignore */ }
 
-      log(`  ${icon.ok}   /xed/api/health \u2192 v${version}`)
+      log(`  ${icon.ok}   /api/health \u2192 v${version}`)
     } else {
-      log(`  ${icon.warn}   /xed/api/health nicht erreichbar (Service läuft, aber kein Response)`)
+      log(`  ${icon.warn}   /api/health nicht erreichbar (Service läuft, aber kein Response)`)
     }
   }
 }
@@ -84,13 +88,14 @@ function checkPayloadService(
     }
   }
 
-  // HTTP-Check
+  // HTTP-Check: Payload/Next.js hat basePath=/studio → `/` liefert 404/308.
+  // Der echte Site-Root ist `/studio/` — dort erwartet wir 200.
   if (isServiceActive(svc)) {
-    const code = httpStatusCode(`http://127.0.0.1:${port}/`)
+    const code = httpStatusCode(`http://127.0.0.1:${port}/studio/`)
     if (code >= 200 && code < 400) {
-      log(`  ${icon.ok}   HTTP localhost:${port} \u2192 ${code}`)
+      log(`  ${icon.ok}   HTTP localhost:${port}/studio/ \u2192 ${code}`)
     } else {
-      log(`  ${icon.warn}   HTTP localhost:${port} \u2192 ${code}`)
+      log(`  ${icon.warn}   HTTP localhost:${port}/studio/ \u2192 ${code}`)
     }
   }
 }
