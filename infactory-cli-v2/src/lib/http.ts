@@ -36,15 +36,23 @@ export function httpPostJson(url: string, body: Record<string, unknown>, timeout
 }
 
 /**
- * HTTP-Statuscode abfragen (z.B. 200, 404, 000 bei Timeout).
+ * HTTP-Statuscode abfragen (z.B. 200, 404, 0 bei Netzwerk-Fehler/Timeout).
+ *
+ * WICHTIG — kein `-f` (fail-on-http-error): Wir wollen den HTTP-Code zurueck,
+ * auch bei 4xx/5xx. Mit `-f` wuerde curl bei non-200 einen non-zero Exit-Code
+ * liefern, zusammen mit `|| echo "000"` ergab das frueher Ausgaben wie
+ * `404000` (parseInt → 404000 als Zahl) — siehe CLI-M4(f) Server-Test 2026-04-15.
+ *
+ * Bei echtem Netzwerk-Fehler (DNS, connection refused, timeout) schlaegt curl
+ * auch ohne `-f` fehl → execSync wirft → catch → return 0.
  */
 export function httpStatusCode(url: string, timeoutSec = 5): number {
   try {
     const code = execSync(
-      `curl -sf -o /dev/null -w "%{http_code}" --max-time ${timeoutSec} "${url}" 2>/dev/null || echo "000"`,
+      `curl -s -o /dev/null -w "%{http_code}" --max-time ${timeoutSec} "${url}"`,
       {encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']},
     ).trim()
-    return Number.parseInt(code, 10)
+    return Number.parseInt(code, 10) || 0
   } catch {
     return 0
   }
