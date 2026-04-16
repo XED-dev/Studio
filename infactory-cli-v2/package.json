@@ -62,6 +62,18 @@
       "admin": {
         "description": "Admin-User verwalten"
       },
+      "ghost": {
+        "description": "Ghost CMS Management (Legacy)"
+      },
+      "images": {
+        "description": "Ghost-Bild-Management: audit/migrate/list/upload (Legacy)"
+      },
+      "preset": {
+        "description": "Theme-Preset-Verwaltung: clone/list/remove (Legacy)"
+      },
+      "qa": {
+        "description": "Visual QA: Screenshot-Vergleich + Pixel-Diff (Legacy)"
+      },
       "server": {
         "description": "Infactory-Service-Lifecycle (start/stop/restart)"
       },
