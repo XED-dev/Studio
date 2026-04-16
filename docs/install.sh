@@ -542,7 +542,11 @@ echo "  Commit:    ${HEAD_SHORT}"
 echo "  Pfad:      $INSTALL_DIR/"
 [ -d "$VENV_DIR/bin" ] && echo "  Venv:      $VENV_DIR/"
 echo "  Refs:      $REFERENCES_DIR/"
-echo "  Symlink:   $BIN_LINK → $CLI_TARGET"
+# Tatsaechlichen Symlink-Zustand anzeigen (nicht $CLI_TARGET). Im KEEP_SYMLINK-
+# Test-Modus divergieren sonst Anzeige und Realitaet — Verwirrungs-Risiko vor
+# Cut-Over. readlink zeigt was der Symlink wirklich ist.
+ACTUAL_LINK=$(readlink "$BIN_LINK" 2>/dev/null || echo "(kein Symlink)")
+echo "  Symlink:   $BIN_LINK → $ACTUAL_LINK"
 [ "$RESTARTED" = "1" ] && echo "  Restart:   via 'infactory server restart' (siehe Ausgabe oben)"
 echo ""
 echo -e "  ${BOLD}Nächste Schritte:${NC}"
