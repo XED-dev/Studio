@@ -507,13 +507,19 @@ fi
 # `infactory server restart` iteriert alle konfigurierten infactory-Services
 # (Multi-Site) und startet sie neu. Aktive Services: restart. Gestoppte aber
 # enabled: startet via systemctl restart (akzeptiert beide Zustaende).
+#
+# WICHTIG: </dev/null isoliert node's stdin vom bash-Pipe (curl | bash-Szenario).
+# Ohne </dev/null erbt node die verbleibenden Script-Zeilen als stdin — oclif
+# interpretiert diese dann faelschlicherweise als Command-Args (CLI-M4 Bug,
+# gefunden beim ersten Server-Test 2026-04-15). Gilt fuer alle node-Subprozess-
+# Aufrufe in laenger laufenden Bash-Scripts die via curl | bash gepiped werden.
 
 RESTARTED=0
 if [ -f "$INFACTORY_V2_BIN" ]; then
   info "Service-Restart via 'infactory server restart'..."
   # Einmal aufrufen; Exit-Code nicht propagieren (Update soll trotz einzelner
   # Failures abschliessen — Fehler werden in der CLI-Ausgabe gezeigt).
-  "$NODE_BIN" "$INFACTORY_V2_BIN" server restart || true
+  "$NODE_BIN" "$INFACTORY_V2_BIN" server restart </dev/null || true
   RESTARTED=1
 else
   warn "v2-CLI nicht verfuegbar — Service-Restart uebersprungen."
