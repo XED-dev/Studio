@@ -31,6 +31,7 @@ import {
 import {join, resolve} from 'node:path'
 
 import {BuildError} from './build-error.js'
+import {resolveRegistryPath, resolveResourcePath} from './resolve-resources.js'
 import {composeSections} from './sections.js'
 import {generateTokens} from './tokens.js'
 import {type GhostCustomItem, loadYamlFile, type Preset} from './yaml.js'
@@ -38,17 +39,19 @@ import {type GhostCustomItem, loadYamlFile, type Preset} from './yaml.js'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface BuildOptions {
-  /** Pfad zu `base-theme/` (Quell-Templates + Assets). Default: `./base-theme`. */
+  /** Pfad zu `base-theme/`. Wenn nicht gesetzt → Resolver (CWD → /opt/infactory/infactory-cli). */
   baseThemeDir?: string
+  /** CWD-Override für Resolver (Tests). Default: process.cwd(). */
+  cwd?: string
   /** Für deterministische Snapshots in Tests. Default: new Date(). */
   now?: Date
   /** Ausgabe-Basisverzeichnis. Theme-Dir wird `<outputDir>/infactory-<preset>/`. Default: `./dist`. */
   outputDir?: string
   /** Preset-ID (z.B. "agency", "saas"). Muss Datei `<presetsDir>/<preset>.yaml` haben. */
   preset: string
-  /** Pfad zu `presets/`. Default: `./presets`. */
+  /** Pfad zu `presets/`. Wenn nicht gesetzt → Resolver. */
   presetsDir?: string
-  /** Pfad zu `sections/registry.json`. Default: `./sections/registry.json`. */
+  /** Pfad zu `sections/registry.json`. Wenn nicht gesetzt → Resolver. */
   registryPath?: string
   /** Nicht-strukturierte stdout-Meldungen ausgeben (statt nur strukturierte Events). */
   verbose?: boolean
@@ -186,17 +189,20 @@ function createZip(sourceDir: string, outputPath: string): Promise<void> {
  */
 export async function buildTheme(opts: BuildOptions): Promise<BuildResult> {
   const {
-    baseThemeDir = resolve('./base-theme'),
+    cwd = process.cwd(),
     outputDir = resolve('./dist'),
     preset,
-    presetsDir = resolve('./presets'),
-    registryPath = resolve('./sections/registry.json'),
     verbose = false,
     zip = false,
   } = opts
   const log = verbose ? (m: string) => console.log(m) : () => {}
 
   const startTime = Date.now()
+
+  // Ressourcen-Resolver: CLI-Flags gewinnen, sonst CWD → /opt/infactory/infactory-cli.
+  const presetsDir = resolveResourcePath(opts.presetsDir, 'presets', {cwd})
+  const baseThemeDir = resolveResourcePath(opts.baseThemeDir, 'base-theme', {cwd})
+  const registryPath = resolveRegistryPath(opts.registryPath, {cwd})
 
   // 1. Preset-Datei finden
   const presetPath = join(presetsDir, `${preset}.yaml`)

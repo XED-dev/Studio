@@ -15,6 +15,7 @@ import {resolve} from 'node:path'
 import {BuildError} from '../lib/build-error.js'
 import {buildTheme, listPresets} from '../lib/build.js'
 import {color, icon} from '../lib/output.js'
+import {resolveResourcePath} from '../lib/resolve-resources.js'
 
 export default class Build extends Command {
   static description = 'Ghost-Theme aus Preset bauen (tokens.css + home.hbs + package.json + optional ZIP)'
@@ -25,8 +26,7 @@ export default class Build extends Command {
   ]
   static flags = {
     'base-theme': Flags.string({
-      default: './base-theme',
-      description: 'Pfad zu base-theme/',
+      description: 'Pfad zu base-theme/ (ohne Flag: CWD → /opt/infactory/infactory-cli)',
     }),
     out: Flags.string({
       char: 'o',
@@ -39,12 +39,10 @@ export default class Build extends Command {
       required: true,
     }),
     presets: Flags.string({
-      default: './presets',
-      description: 'Pfad zum presets/ Verzeichnis',
+      description: 'Pfad zum presets/ Verzeichnis (ohne Flag: CWD → /opt/infactory/infactory-cli)',
     }),
     registry: Flags.string({
-      default: './sections/registry.json',
-      description: 'Pfad zur sections/registry.json',
+      description: 'Pfad zur sections/registry.json (ohne Flag: CWD → /opt/infactory/infactory-cli)',
     }),
     verbose: Flags.boolean({
       char: 'v',
@@ -66,11 +64,11 @@ export default class Build extends Command {
 
     try {
       const result = await buildTheme({
-        baseThemeDir: resolve(flags['base-theme']),
+        baseThemeDir: flags['base-theme'] ? resolve(flags['base-theme']) : undefined,
         outputDir: resolve(flags.out),
         preset: flags.preset,
-        presetsDir: resolve(flags.presets),
-        registryPath: resolve(flags.registry),
+        presetsDir: flags.presets ? resolve(flags.presets) : undefined,
+        registryPath: flags.registry ? resolve(flags.registry) : undefined,
         verbose: flags.verbose,
         zip: flags.zip,
       })
@@ -99,10 +97,16 @@ export default class Build extends Command {
       if (error instanceof BuildError) {
         this.log('')
         this.log(`  ${icon.err} ${error.message}`)
-        const available = listPresets(resolve(flags.presets))
-        if (available.length > 0) {
-          this.log(`  Verfügbare Presets: ${available.join(', ')}`)
-        }
+        try {
+          const presetsDir = resolveResourcePath(
+            flags.presets ? resolve(flags.presets) : undefined,
+            'presets',
+          )
+          const available = listPresets(presetsDir)
+          if (available.length > 0) {
+            this.log(`  Verfügbare Presets: ${available.join(', ')}`)
+          }
+        } catch { /* presets-Dir selbst nicht auflösbar → Hinweis ist nicht anwendbar */ }
 
         this.log('')
         this.exit(1)
