@@ -11,13 +11,17 @@
     "@oclif/core": "^4",
     "@oclif/plugin-help": "^6",
     "@oclif/plugin-not-found": "^3.2.80",
-    "@oclif/plugin-plugins": "^5"
+    "@oclif/plugin-plugins": "^5",
+    "archiver": "^7.0.1",
+    "js-yaml": "^4.1.1"
   },
   "devDependencies": {
     "@eslint/compat": "^1",
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^4",
+    "@types/archiver": "^7.0.0",
     "@types/chai": "^4",
+    "@types/js-yaml": "^4.0.9",
     "@types/mocha": "^10",
     "@types/node": "^18",
     "chai": "^4",

@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "categories": {
+    "hero": {"icon": "◈", "label": "Hero"},
+    "cta":  {"icon": "◉", "label": "CTA"}
+  },
+  "sections": [
+    {
+      "id": "hero_mini",
+      "label": "Hero Mini",
+      "category": "hero",
+      "partial": "sections/hero/hero-mini.hbs",
+      "presets": ["testmini"],
+      "implemented": true,
+      "description": "Minimaler Hero für Tests",
+      "ghost_helpers": ["site"]
+    },
+    {
+      "id": "cta_mini",
+      "label": "CTA Mini",
+      "category": "cta",
+      "partial": "sections/cta/cta-mini.hbs",
+      "presets": ["testmini"],
+      "implemented": false,
+      "description": "CTA-Section (Placeholder erwartet)"
+    }
+  ]
+}

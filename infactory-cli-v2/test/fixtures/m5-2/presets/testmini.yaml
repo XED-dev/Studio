@@ -1,0 +1,28 @@
+id: testmini
+name: Test Mini
+description: "Mini-Preset für Build-Integration-Tests"
+
+tokens:
+  color:
+    primary: "#ff0000"
+  font:
+    display: "'Cabinet Grotesk', 'Georgia', serif"
+    body: "'Work Sans', 'Helvetica Neue', sans-serif"
+
+layout:
+  home:
+    - hero_mini
+    - unknown_section
+    - cta_mini
+
+ghost:
+  posts_per_page: 6
+  custom:
+    - key: header_style
+      type: select
+      options: [static, sticky]
+      default: static
+      description: Header-Verhalten
+    - key: accent_color
+      type: color
+      default: "#ff0000"
