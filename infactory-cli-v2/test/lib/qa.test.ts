@@ -7,7 +7,7 @@
 
 import {expect} from 'chai'
 
-import {computeOverallScore, slugFromUrl} from '../../src/lib/qa.js'
+import {buildSlugUrl, computeOverallScore, parseSlugsList, slugFromUrl} from '../../src/lib/qa.js'
 
 describe('lib/qa (pure Helpers)', () => {
   describe('slugFromUrl', () => {
@@ -48,6 +48,46 @@ describe('lib/qa (pure Helpers)', () => {
 
     it('custom weights respektiert', () => {
       expect(computeOverallScore(100, 100, 100, {css: 0.5, pixel: 0.5, structure: 0})).to.equal(100)
+    })
+  })
+
+  describe('parseSlugsList (M5.4.1)', () => {
+    it('zerlegt Comma-Liste, trimmt Whitespace', () => {
+      expect(parseSlugsList('home, about, team')).to.deep.equal(['home', 'about', 'team'])
+    })
+
+    it('filtert leere Einträge (Doppel-Komma)', () => {
+      expect(parseSlugsList('a,,b,')).to.deep.equal(['a', 'b'])
+    })
+
+    it('leerer String → leeres Array', () => {
+      expect(parseSlugsList('')).to.deep.equal([])
+    })
+
+    it('nur Whitespace → leeres Array', () => {
+      expect(parseSlugsList('   ,   ,  ')).to.deep.equal([])
+    })
+
+    it('einzelner Slug ohne Komma', () => {
+      expect(parseSlugsList('home')).to.deep.equal(['home'])
+    })
+  })
+
+  describe('buildSlugUrl (M5.4.1)', () => {
+    it('Base ohne trailing slash + Slug ohne Slashes', () => {
+      expect(buildSlugUrl('https://a.at', 'home')).to.equal('https://a.at/home/')
+    })
+
+    it('Base mit trailing slash → Slash entfernt', () => {
+      expect(buildSlugUrl('https://a.at/', 'home')).to.equal('https://a.at/home/')
+    })
+
+    it('Slug mit leading + trailing Slashes → normalisiert', () => {
+      expect(buildSlugUrl('https://a.at', '/home/')).to.equal('https://a.at/home/')
+    })
+
+    it('Mehrstufiger Slug bleibt erhalten', () => {
+      expect(buildSlugUrl('https://a.at', 'news/2024')).to.equal('https://a.at/news/2024/')
     })
   })
 })

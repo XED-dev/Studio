@@ -236,3 +236,110 @@ export function ensureOutputDir(outputDir: string): void {
     throw new QaError(`Output-Verzeichnis nicht erstellbar: ${outputDir} — ${(error as Error).message}`)
   }
 }
+
+// ── Batch-Support (M5.4.1) ────────────────────────────────────────────────────
+
+export interface BatchCompareOptions extends ResolveVenvOptions {
+  now?: Date
+  outputDir?: string
+  /** Slug-Liste — z.B. `['home', 'feiern-geniessen', 'team']`. */
+  slugs: string[]
+  /** Base-URL der Quellseite (wird mit `<base>/<slug>/` kombiniert). */
+  sourceBase: string
+  /** Base-URL der Zielseite. */
+  targetBase: string
+  width?: number
+}
+
+export interface BatchEntry {
+  /** Null wenn der Compare-Aufruf geworfen hat. */
+  error: null | string
+  /** Gesamtscore (0-100) oder null bei Fehler. */
+  overall: null | number
+  report: CompareReport | null
+  slug: string
+}
+
+export interface BatchReport {
+  /** Durchschnittlicher Overall-Score über erfolgreiche Vergleiche. */
+  avgScore: number
+  entries: BatchEntry[]
+  /** Anzahl erfolgreicher Einträge. */
+  successCount: number
+  timestamp: string
+  /** Gesamtzahl der Slugs. */
+  totalSlugs: number
+}
+
+/**
+ * Zerlegt eine comma-separierte Slug-Liste in ein Array. Whitespace + leere
+ * Einträge werden entfernt. Idempotent gegen "a,b,c", "a, b, c" und "a,,b".
+ */
+export function parseSlugsList(input: string): string[] {
+  return input
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+}
+
+/**
+ * Baut eine Full-URL aus Base + Slug. Slashes werden normalisiert:
+ * `https://a.at/` + `home` → `https://a.at/home/`.
+ */
+export function buildSlugUrl(base: string, slug: string): string {
+  const cleanBase = base.replace(/\/+$/, '')
+  const cleanSlug = slug.replaceAll(/^\/+|\/+$/g, '')
+  return `${cleanBase}/${cleanSlug}/`
+}
+
+/**
+ * Führt compareQa für jeden Slug aus, sammelt Ergebnisse in BatchReport.
+ * Fehler einzelner Slugs sind non-fatal — sie landen als error-Entry.
+ *
+ * @throws QaError bei Infrastruktur-Fehlern (kein venv, outputDir unzugänglich).
+ *         Einzelne Compare-Fehler sind non-fatal und werden in `entries[].error`
+ *         dokumentiert.
+ */
+export async function batchCompareQa(opts: BatchCompareOptions): Promise<BatchReport> {
+  const {outputDir = '/tmp/infactory-qa', slugs, sourceBase, targetBase, width = 1440} = opts
+  ensureOutputDir(outputDir)
+
+  const entries: BatchEntry[] = []
+
+  for (const slug of slugs) {
+    try {
+      // eslint-disable-next-line no-await-in-loop -- screenshots sind ressourcenintensiv (Browser+Network), sequentiell ist hier gewollt
+      const report = await compareQa({
+        cwd: opts.cwd,
+        env: opts.env,
+        legacyCliDir: opts.legacyCliDir,
+        now: opts.now,
+        outputDir,
+        serverVenvDir: opts.serverVenvDir,
+        sourceUrl: buildSlugUrl(sourceBase, slug),
+        targetUrl: buildSlugUrl(targetBase, slug),
+        width,
+      })
+      entries.push({error: null, overall: report.overall, report, slug})
+    } catch (error) {
+      entries.push({error: (error as Error).message, overall: null, report: null, slug})
+    }
+  }
+
+  const successes = entries.filter((e) => e.error === null && e.overall !== null)
+  const avgScore = successes.length > 0
+    ? Math.round(successes.reduce((sum, e) => sum + (e.overall ?? 0), 0) / successes.length)
+    : 0
+
+  const now = opts.now ?? new Date()
+  const batchReport: BatchReport = {
+    avgScore,
+    entries,
+    successCount: successes.length,
+    timestamp: now.toISOString(),
+    totalSlugs: slugs.length,
+  }
+
+  writeFileSync(join(outputDir, 'batch-report.json'), JSON.stringify(batchReport, null, 2), 'utf8')
+  return batchReport
+}
