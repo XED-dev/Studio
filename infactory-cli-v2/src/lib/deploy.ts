@@ -31,17 +31,17 @@
  * Admin-Keys dürfen dort nicht landen. Siehe CC §Design-Entscheidungen.
  */
 
-import {existsSync, readFileSync, statSync} from 'node:fs'
+import {existsSync, statSync} from 'node:fs'
 import {join, resolve} from 'node:path'
 
 import {buildTheme} from './build.js'
 import {DeployError} from './deploy-error.js'
 import {
   activateTheme,
-  type GhostConfig,
   parseAdminKey,
   uploadTheme,
 } from './ghost-api.js'
+import {requireValidCredentials, type ResolvedConfig, resolveGhostConfig} from './ghost-config.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -89,54 +89,12 @@ export interface DeployResult {
   zipPath: string
 }
 
-export interface ResolvedConfig {
-  adminKey: null | string
-  ghostUrl: null | string
-}
-
-// ── Pure Functions (testbar) ──────────────────────────────────────────────────
-
-interface ProjectConfig {
-  deploy?: {
-    key?: string
-    url?: string
-  }
-}
-
-function readProjectConfig(cwd: string): null | ProjectConfig {
-  const path = join(cwd, '.infactory.json')
-  if (!existsSync(path)) return null
-  try {
-    return JSON.parse(readFileSync(path, 'utf8')) as ProjectConfig
-  } catch {
-    return null
-  }
-}
-
 /**
- * Löst Ghost-URL + Admin-Key aus der Priority-Kette CLI → ENV → .infactory.json.
- * Rückgabe kann null-Felder haben — validateDeployOptions prüft.
+ * @deprecated Use `resolveGhostConfig` from `./ghost-config.js` directly.
+ * Re-export for backward-compat in tests (`resolveDeployConfig` was the
+ * original M5.3 export).
  */
-export function resolveDeployConfig(
-  cliOpts: {adminKey?: string; ghostUrl?: string},
-  cwd: string = process.cwd(),
-  env: NodeJS.ProcessEnv = process.env,
-): ResolvedConfig {
-  const project = readProjectConfig(cwd)
-
-  return {
-    adminKey:
-      cliOpts.adminKey
-      ?? env.INFACTORY_GHOST_KEY
-      ?? project?.deploy?.key
-      ?? null,
-    ghostUrl:
-      cliOpts.ghostUrl
-      ?? env.INFACTORY_GHOST_URL
-      ?? project?.deploy?.url
-      ?? null,
-  }
-}
+export {resolveGhostConfig as resolveDeployConfig} from './ghost-config.js'
 
 /**
  * Validiert DeployOptions nach Config-Resolution.
@@ -149,41 +107,14 @@ export function resolveDeployConfig(
 export function validateDeployOptions(
   preset: null | string | undefined,
   resolved: ResolvedConfig,
-): GhostConfig {
+): import('./ghost-api.js').GhostConfig {
   if (!preset) {
     throw new DeployError(
       '--preset fehlt. Beispiel: infactory deploy --preset=agency --ghost-url=https://mein.blog --admin-key=<id:secret>',
     )
   }
 
-  if (!resolved.ghostUrl) {
-    throw new DeployError(
-      '--ghost-url fehlt. Beispiel: --ghost-url=https://mein.blog '
-      + '(oder ENV INFACTORY_GHOST_URL, oder .infactory.json deploy.url)',
-    )
-  }
-
-  if (!resolved.adminKey) {
-    throw new DeployError(
-      '--admin-key fehlt. Ghost Admin → Settings → Integrations → Custom Integration. '
-      + 'Format: <id>:<secret> (oder ENV INFACTORY_GHOST_KEY, oder .infactory.json deploy.key)',
-    )
-  }
-
-  // parseAdminKey wirft bei invalid Format — wir fangen und re-throwen als
-  // DeployError ohne den Key durchzureichen.
-  try {
-    parseAdminKey(resolved.adminKey)
-  } catch {
-    throw new DeployError(
-      'Ungültiges Admin-Key-Format. Erwartet: <id>:<secret> (aus Ghost Admin → Integrations)',
-    )
-  }
-
-  return {
-    adminKey: resolved.adminKey,
-    url: resolved.ghostUrl.replace(/\/+$/, ''),
-  }
+  return requireValidCredentials(resolved, (msg) => new DeployError(msg))
 }
 
 /**
@@ -250,7 +181,7 @@ export async function deployTheme(opts: DeployOptions): Promise<DeployResult> {
   const startTime = Date.now()
 
   // 1. Validate (fail-fast vor Build)
-  const resolvedConfig = resolveDeployConfig(
+  const resolvedConfig = resolveGhostConfig(
     {adminKey: opts.adminKey, ghostUrl: opts.ghostUrl},
     cwd,
   )

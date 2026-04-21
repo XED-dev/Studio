@@ -353,3 +353,88 @@ export async function uploadImage(
 
   return httpCall<{images: GhostImage[]}>(url, 'POST', headers, body)
 }
+
+// ── Pages-API (für M5.5 images) ───────────────────────────────────────────────
+
+/**
+ * Eine Ghost-Page mit relevanten Feldern für die Image-Migration.
+ * Felder wie tags/authors lassen wir bewusst weg — wir brauchen sie nicht
+ * und reduzieren so die Type-Surface.
+ */
+export interface GhostPage {
+  feature_image?: null | string
+  id: string
+  lexical?: null | string
+  slug: string
+  updated_at: string
+}
+
+export interface GhostPagesResponse {
+  meta?: {
+    pagination?: {
+      next?: null | number
+      page: number
+      pages: number
+    }
+  }
+  pages: GhostPage[]
+}
+
+const PAGES_PAGE_SIZE = 15
+
+/**
+ * Holt EINE Page-Seite (Pagination-Schritt) — Lexical-Format inklusive.
+ */
+export async function fetchPagesPage(
+  config: GhostConfig,
+  page = 1,
+): Promise<GhostHttpResponse<GhostPagesResponse>> {
+  const endpoint = `/ghost/api/admin/pages/?formats=lexical&limit=${PAGES_PAGE_SIZE}&page=${page}`
+  return ghostRequest<GhostPagesResponse>(config, 'GET', endpoint)
+}
+
+/**
+ * Holt alle Pages über Pagination. Bricht bei HTTP-Fehler ab und wirft.
+ *
+ * @throws Error mit HTTP-Status-Kontext, wenn ein Page-Fetch fehlschlägt.
+ *         Wir werfen hier statt Result-Type, weil Caller (images.ts) das
+ *         als Pipeline-Stop-Signal sehen will (kein partielles Audit).
+ */
+export async function fetchAllPages(config: GhostConfig): Promise<GhostPage[]> {
+  const all: GhostPage[] = []
+  let page = 1
+  while (true) {
+    // eslint-disable-next-line no-await-in-loop -- Pagination ist sequentiell, Ghost liefert next-Marker erst nach Response.
+    const result = await fetchPagesPage(config, page)
+    if (!result.ok) {
+      throw new Error(`Ghost /pages/ fetch fehlgeschlagen (HTTP ${result.status}, page ${page})`)
+    }
+
+    if (result.data?.pages) all.push(...result.data.pages)
+    if (!result.data?.meta?.pagination?.next) break
+    page++
+  }
+
+  return all
+}
+
+/**
+ * Aktualisiert eine Page (lexical + feature_image).
+ * Optimistic-Concurrency via `updated_at` (Ghost wirft 409 bei Stale-Updates).
+ */
+export async function updatePage(
+  config: GhostConfig,
+  page: GhostPage,
+  updates: {feature_image?: null | string; lexical?: null | string},
+): Promise<GhostHttpResponse<{pages: GhostPage[]}>> {
+  const endpoint = `/ghost/api/admin/pages/${encodeURIComponent(page.id)}/`
+  return ghostRequest<{pages: GhostPage[]}>(config, 'PUT', endpoint, {
+    pages: [{
+      // eslint-disable-next-line camelcase -- Ghost API nutzt snake_case (external schema).
+      feature_image: updates.feature_image ?? page.feature_image ?? null,
+      lexical: updates.lexical ?? page.lexical ?? null,
+      // eslint-disable-next-line camelcase -- Ghost API nutzt snake_case (external schema).
+      updated_at: page.updated_at,
+    }],
+  })
+}
