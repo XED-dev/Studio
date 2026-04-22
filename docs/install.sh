@@ -563,3 +563,15 @@ echo ""
 echo -e "  Docs:   ${BLUE}https://studio.xed.dev${NC}"
 echo -e "  GitHub: ${BLUE}https://github.com/XED-dev/Studio${NC}"
 echo ""
+
+# ─── Preflight: Dependencies sofort validieren ───────────────────────────────
+# Self-Healing (M5.4.1 + AI028 Empfehlung Human DevOps): wenn `infactory` als
+# Command verfügbar ist, `health` direkt laufen lassen. Bei Problemen sieht
+# der User den Fix-Hinweis sofort, nicht erst beim nächsten Command-Call.
+# `|| true` — Health-Fails crashen den Install nicht, sie warnen nur.
+# `</dev/null` — verhindert dass oclif Script-Rest als argv frisst
+#   (siehe feedback_curl_bash_stdin, AI026 M5.1 Retrospektive).
+if command -v infactory &>/dev/null; then
+  echo "  ── Preflight ────────────────────────────────────────────"
+  infactory health </dev/null || true
+fi
