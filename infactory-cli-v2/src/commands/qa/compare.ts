@@ -71,12 +71,17 @@ export default class QaCompare extends Command {
       this.log(`  ${icon.ok} Slug: ${report.slug}`)
       this.log('')
 
+      const errorByName = new Map(report.errors.map((e) => [e.sensor, e.message]))
+      const reportPath = `${resolve(flags.out)}/${report.slug}-report.json`
+
       if (report.pixel) {
         const marker = report.pixel.layoutDiff ? icon.warn : icon.ok
         this.log(`  ${marker} Sensor 1 (Pixel):    ${report.pixel.similarity}%`
           + (report.pixel.layoutDiff ? ' — LAYOUT-DIFF (Bilder haben verschiedene Dimensionen)' : ''))
       } else {
-        this.log(`  ${icon.err} Sensor 1 (Pixel):    fehlgeschlagen`)
+        const msg = errorByName.get('pixel') ?? 'unbekannter Fehler'
+        this.log(`  ${icon.err} Sensor 1 (Pixel):    fehlgeschlagen — ${msg.split('\n')[0]}`)
+        this.log(`         Details: ${reportPath}`)
       }
 
       if (report.css) {
@@ -95,7 +100,9 @@ export default class QaCompare extends Command {
           }
         }
       } else {
-        this.log(`  ${icon.err} Sensor 2 (CSS):      fehlgeschlagen`)
+        const msg = errorByName.get('css') ?? 'unbekannter Fehler'
+        this.log(`  ${icon.err} Sensor 2 (CSS):      fehlgeschlagen — ${msg.split('\n')[0]}`)
+        this.log(`         Details: ${reportPath}`)
       }
 
       if (report.structure) {
@@ -112,16 +119,28 @@ export default class QaCompare extends Command {
           }
         }
       } else {
-        this.log(`  ${icon.err} Sensor 3 (Struktur): fehlgeschlagen`)
+        const msg = errorByName.get('structure') ?? 'unbekannter Fehler'
+        this.log(`  ${icon.err} Sensor 3 (Struktur): fehlgeschlagen — ${msg.split('\n')[0]}`)
+        this.log(`         Details: ${reportPath}`)
       }
 
       this.log('')
       this.log(`  ${color.bold}Gesamt-Score: ${report.overall}%${color.nc}  (Ziel: 99%)`)
-      this.log(`     Struktur: ${report.structure?.percentage ?? 0}%  × ${report.weights.structure}`)
-      this.log(`     Pixel:    ${report.pixel?.similarity ?? 0}%  × ${report.weights.pixel}`)
-      this.log(`     CSS:      ${report.css?.score ?? 0}%  × ${report.weights.css}`)
+      const fmtScore = (score: null | number): string => score === null ? 'n/a' : `${score}%`
+      this.log(`     Struktur: ${fmtScore(report.structure?.percentage ?? null)}  × ${report.weights.structure}`)
+      this.log(`     Pixel:    ${fmtScore(report.pixel?.similarity ?? null)}  × ${report.weights.pixel}`)
+      this.log(`     CSS:      ${fmtScore(report.css?.score ?? null)}  × ${report.weights.css}`)
+
+      if (report.errors.length > 0) {
+        this.log('')
+        this.log(`  ${icon.warn} ${report.errors.length} Sensor-Fehler — Fix-Hinweise:`)
+        for (const e of report.errors) {
+          this.log(`     Sensor ${e.sensor}: ${e.message.split('\n').slice(0, 5).join('\n       ')}`)
+        }
+      }
+
       this.log('')
-      this.log(`  Report:  ${resolve(flags.out)}/${report.slug}-report.json`)
+      this.log(`  Report:  ${reportPath}`)
       this.log(`  PNGs:    ${resolve(flags.out)}/${report.slug}-{source,target,diff}.png`)
       this.log('')
     } catch (error) {

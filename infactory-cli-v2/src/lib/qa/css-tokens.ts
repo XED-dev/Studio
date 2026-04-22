@@ -8,7 +8,7 @@
  * Die Extraktions-Funktion wirft QaError wenn shot-scraper nicht antwortet.
  */
 
-import type {ResolvedVenv} from '../resolve-venv.js'
+import type {ResolvedVenv, ResolveVenvOptions} from '../resolve-venv.js'
 
 import {runShotScraperJs} from './screenshots.js'
 
@@ -129,9 +129,13 @@ export function buildExtractionJs(selectors: CssSelector[] = DEFAULT_CSS_SELECTO
 /**
  * CSS-Tokens einer URL extrahieren (via shot-scraper → Chromium).
  */
-export function extractCssTokens(url: string, venv: ResolvedVenv): CssTokens {
+export function extractCssTokens(
+  url: string,
+  venv: ResolvedVenv,
+  opts: ResolveVenvOptions = {},
+): CssTokens {
   const js = buildExtractionJs()
-  const output = runShotScraperJs(url, js, venv)
+  const output = runShotScraperJs(url, js, venv, opts)
   return JSON.parse(output) as CssTokens
 }
 

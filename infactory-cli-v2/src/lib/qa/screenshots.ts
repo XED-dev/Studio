@@ -18,9 +18,8 @@
 import {spawnSync} from 'node:child_process'
 import {dirname} from 'node:path'
 
-import type {ResolvedVenv} from '../resolve-venv.js'
-
 import {QaError} from '../qa-error.js'
+import {type ResolvedVenv, resolvePlaywrightBrowsersPath, type ResolveVenvOptions} from '../resolve-venv.js'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -28,12 +27,36 @@ const REMOVE_OVERLAYS_JS
   = "document.querySelectorAll('[class*=cookie],[id*=cookie],[class*=overlay],[class*=popup],[class*=consent]').forEach(e=>e.remove())"
 
 export interface ScreenshotOptions {
+  /** Optionen für `resolvePlaywrightBrowsersPath` (cwd/env/serverBrowsersDir-Overrides für Tests). */
+  resolveOpts?: ResolveVenvOptions
   /** venv aus resolveVenv(). */
   venv: ResolvedVenv
   /** Wartezeit nach Load vor Screenshot in ms. Default 2000. */
   wait?: number
   /** Viewport-Breite in px. Default 1440. */
   width?: number
+}
+
+/**
+ * Baut die env für shot-scraper-Subprozesse: process.env-Erbe + PATH-Prepend
+ * mit venv/bin + auto-setting von PLAYWRIGHT_BROWSERS_PATH wenn ein
+ * expliziter Pfad resolvebar ist.
+ *
+ * Kritisch für M5.4.1: User-Shells ohne PLAYWRIGHT_BROWSERS_PATH sehen sonst
+ * "Executable doesn't exist" weil Chromium auf dem Server unter
+ * `/opt/infactory/browsers/` statt `~/.cache/ms-playwright/` liegt.
+ */
+export function buildShotScraperEnv(
+  venv: ResolvedVenv,
+  opts: ResolveVenvOptions = {},
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PATH: `${dirname(venv.python)}:${process.env.PATH ?? ''}`,
+  }
+  const browsersPath = resolvePlaywrightBrowsersPath(opts)
+  if (browsersPath) env.PLAYWRIGHT_BROWSERS_PATH = browsersPath
+  return env
 }
 
 /**
@@ -55,14 +78,14 @@ export function takeScreenshot(url: string, outputPath: string, opts: Screenshot
     ],
     {
       encoding: 'utf8',
-      env: {...process.env, PATH: `${dirname(venv.python)}:${process.env.PATH ?? ''}`},
+      env: buildShotScraperEnv(venv, opts.resolveOpts),
       timeout: DEFAULT_TIMEOUT_MS,
     },
   )
 
   if (result.status !== 0) {
-    const stderr = (result.stderr ?? '').slice(0, 200)
-    throw new QaError(`shot-scraper Screenshot failed (${url}): ${stderr}`)
+    const stderr = (result.stderr ?? '').slice(0, 400)
+    throw new QaError(buildShotScraperError(url, 'Screenshot', stderr))
   }
 
   return outputPath
@@ -77,20 +100,25 @@ export function takeScreenshot(url: string, outputPath: string, opts: Screenshot
  *
  * @throws QaError bei Exit-Code ≠ 0 oder Timeout.
  */
-export function runShotScraperJs(url: string, js: string, venv: ResolvedVenv): string {
+export function runShotScraperJs(
+  url: string,
+  js: string,
+  venv: ResolvedVenv,
+  resolveOpts: ResolveVenvOptions = {},
+): string {
   const result = spawnSync(
     venv.python,
     [venv.shotScraper, 'javascript', url, js],
     {
       encoding: 'utf8',
-      env: {...process.env, PATH: `${dirname(venv.python)}:${process.env.PATH ?? ''}`},
+      env: buildShotScraperEnv(venv, resolveOpts),
       timeout: DEFAULT_TIMEOUT_MS,
     },
   )
 
   if (result.status !== 0) {
-    const stderr = (result.stderr ?? '').slice(0, 200)
-    throw new QaError(`shot-scraper JS failed (${url}): ${stderr}`)
+    const stderr = (result.stderr ?? '').slice(0, 400)
+    throw new QaError(buildShotScraperError(url, 'JS', stderr))
   }
 
   let output = (result.stdout ?? '').trim()
@@ -99,4 +127,24 @@ export function runShotScraperJs(url: string, js: string, venv: ResolvedVenv): s
   }
 
   return output
+}
+
+/**
+ * Normalisiert Fehler-Messages aus shot-scraper-Exits zu Actionable-Hinweisen.
+ * Erkennt bekannte Pattern (z.B. Playwright-Browser-Missing) und fügt den
+ * Fix-Pfad direkt in die Exception-Message — AI-Agenten + Humans sehen im
+ * Report, WAS zu tun ist, nicht nur DASS es kaputt ist.
+ */
+export function buildShotScraperError(url: string, mode: 'JS' | 'Screenshot', stderr: string): string {
+  if (stderr.includes("Executable doesn't exist") || stderr.includes('playwright install')) {
+    return (
+      `shot-scraper ${mode} failed (${url}): Playwright-Chromium fehlt.\n`
+      + `  Fix: curl -fsSL https://studio.xed.dev/install.sh | bash\n`
+      + `  Das installiert Chromium in /opt/infactory/browsers/ und setzt\n`
+      + `  PLAYWRIGHT_BROWSERS_PATH automatisch beim nächsten qa-Call.\n`
+      + `  Original stderr (gekappt):\n  ${stderr.slice(0, 200)}`
+    )
+  }
+
+  return `shot-scraper ${mode} failed (${url}): ${stderr}`
 }

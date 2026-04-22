@@ -60,12 +60,21 @@ export interface CompareOptions extends ResolveVenvOptions {
   width?: number
 }
 
+export interface SensorError {
+  /** Actionable Fehler-Message (enthält Fix-Hinweis falls bekannt). */
+  message: string
+  /** Mapping auf Sensor-Nummern: pixel=1, css=2, structure=3. */
+  sensor: 'css' | 'pixel' | 'structure'
+}
+
 export interface CompareReport {
   /** Sensor 2 Ergebnisse oder null wenn fehlgeschlagen. */
   css: CssSummary | null
+  /** Sammlung aller Sensor-Fehler mit actionable messages. */
+  errors: SensorError[]
   /** File-Pfade zu den drei PNGs (source, target, diff). */
   files: {diff: string; source: string; target: string}
-  /** Gewichteter Gesamt-Score (0–100). */
+  /** Gewichteter Gesamt-Score (0–100). Berücksichtigt nur erfolgreiche Sensoren. */
   overall: number
   /** Sensor 1 Ergebnisse oder null wenn fehlgeschlagen. */
   pixel: null | PixelSummary
@@ -117,19 +126,40 @@ export function slugFromUrl(url: string): string {
 }
 
 /**
- * Gewichteter Gesamt-Score. Fehlende Sensoren zählen als 0.
+ * Gewichteter Gesamt-Score. Null-Sensoren werden aus der Gewichtung
+ * herausgerechnet (statt als 0 zu werten) — sonst würde ein einzelner
+ * Sensor-Ausfall den Score künstlich drücken UND ein False-Positive auf
+ * leeren Daten würde trotzdem durchgehen. Bei allen-null-Sensoren: return 0.
+ *
+ * M5.4.1-Verbesserung: Vorher haben null-Sensoren als 0 im Gesamt-Score
+ * gezählt (aber auch Struktur-0 bei empty-DOM hat zu False-Positive 85%
+ * geführt). Jetzt sind beide Fälle korrekt behandelt.
  */
 export function computeOverallScore(
-  pixelScore: number,
-  cssScore: number,
-  structScore: number,
+  pixelScore: null | number,
+  cssScore: null | number,
+  structScore: null | number,
   weights = WEIGHTS,
 ): number {
-  return Math.round(
-    structScore * weights.structure
-    + pixelScore * weights.pixel
-    + cssScore * weights.css,
-  )
+  let sum = 0
+  let weightTotal = 0
+  if (pixelScore !== null) {
+    sum += pixelScore * weights.pixel
+    weightTotal += weights.pixel
+  }
+
+  if (cssScore !== null) {
+    sum += cssScore * weights.css
+    weightTotal += weights.css
+  }
+
+  if (structScore !== null) {
+    sum += structScore * weights.structure
+    weightTotal += weights.structure
+  }
+
+  if (weightTotal === 0) return 0
+  return Math.round(sum / weightTotal)
 }
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
@@ -155,22 +185,24 @@ export async function compareQa(opts: CompareOptions): Promise<CompareReport> {
   const tgtPng = join(outputDir, `${slug}-target.png`)
   const diffPng = join(outputDir, `${slug}-diff.png`)
 
+  const errors: SensorError[] = []
+
   // ── Sensor 1: Pixel ────────────────────────────────────────────────────────
   let pixel: null | (PixelResult & PixelSummary) = null
   try {
-    takeScreenshot(sourceUrl, srcPng, {venv, width})
-    takeScreenshot(targetUrl, tgtPng, {venv, width})
+    takeScreenshot(sourceUrl, srcPng, {resolveOpts: opts, venv, width})
+    takeScreenshot(targetUrl, tgtPng, {resolveOpts: opts, venv, width})
     const result = await comparePixels(srcPng, tgtPng, diffPng)
     pixel = result
-  } catch {
-    // non-fatal — pixel bleibt null
+  } catch (error) {
+    errors.push({message: (error as Error).message, sensor: 'pixel'})
   }
 
   // ── Sensor 2: CSS ──────────────────────────────────────────────────────────
   let css: CssSummary | null = null
   try {
-    const srcTokens = extractCssTokens(sourceUrl, venv)
-    const tgtTokens = extractCssTokens(targetUrl, venv)
+    const srcTokens = extractCssTokens(sourceUrl, venv, opts)
+    const tgtTokens = extractCssTokens(targetUrl, venv, opts)
     const diffs = compareCssTokens(srcTokens, tgtTokens)
     const matches = diffs.filter((d) => d.match).length
     css = {
@@ -179,29 +211,43 @@ export async function compareQa(opts: CompareOptions): Promise<CompareReport> {
       score: cssMatchScore(diffs),
       total: diffs.length,
     }
-  } catch {
-    // non-fatal
+  } catch (error) {
+    errors.push({message: (error as Error).message, sensor: 'css'})
   }
 
   // ── Sensor 3: Struktur ─────────────────────────────────────────────────────
+  // False-Positive-Schutz (M5.4.1): wenn der DOM-Analyzer an Source ODER Target
+  // fehlschlägt, sind die Vergleichsdaten unbrauchbar → structure = null statt
+  // auf leeren Counts zu scoren (vorher 85% bei zwei leeren Seiten).
   let structure: null | StructureReport = null
   try {
-    const srcStruct = extractStructure(sourceUrl, venv, opts)
-    const tgtStruct = extractStructure(targetUrl, venv, opts)
-    structure = compareStructure(srcStruct, tgtStruct)
-  } catch {
-    // non-fatal
+    const src = extractStructure(sourceUrl, venv, opts)
+    const tgt = extractStructure(targetUrl, venv, opts)
+    if (src.domError || tgt.domError) {
+      const combined = [src.domError, tgt.domError].filter(Boolean).join(' | ')
+      errors.push({
+        message: `DOM-Analyzer fehlgeschlagen: ${combined}`,
+        sensor: 'structure',
+      })
+    } else {
+      structure = compareStructure(src.structure, tgt.structure)
+    }
+  } catch (error) {
+    errors.push({message: (error as Error).message, sensor: 'structure'})
   }
 
   // ── Score-Aggregation ──────────────────────────────────────────────────────
-  const pixelScore = pixel?.similarity ?? 0
-  const cssScore = css?.score ?? 0
-  const structScore = structure?.percentage ?? 0
-  const overall = computeOverallScore(pixelScore, cssScore, structScore)
+  // null = Sensor fehlgeschlagen → aus Gewichtung rausgerechnet, nicht als 0 gewertet.
+  const overall = computeOverallScore(
+    pixel?.similarity ?? null,
+    css?.score ?? null,
+    structure?.percentage ?? null,
+  )
 
   // ── Report schreiben ───────────────────────────────────────────────────────
   const report: CompareReport = {
     css,
+    errors,
     files: {diff: diffPng, source: srcPng, target: tgtPng},
     overall,
     pixel: pixel ? {

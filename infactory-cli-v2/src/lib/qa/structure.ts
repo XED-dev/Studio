@@ -16,10 +16,9 @@
  */
 
 import {spawnSync} from 'node:child_process'
-import {dirname} from 'node:path'
 
 import {type ResolvedVenv, resolvePythonScript, type ResolveVenvOptions} from '../resolve-venv.js'
-import {runShotScraperJs} from './screenshots.js'
+import {buildShotScraperEnv, runShotScraperJs} from './screenshots.js'
 
 export interface Section {
   classes: string
@@ -141,7 +140,7 @@ function callCrawl4ai(url: string, venv: ResolvedVenv, opts: ResolveVenvOptions)
     [scriptPath, url],
     {
       encoding: 'utf8',
-      env: {...process.env, PATH: `${dirname(venv.python)}:${process.env.PATH ?? ''}`},
+      env: buildShotScraperEnv(venv, opts),
       timeout: 45_000,
     },
   )
@@ -164,35 +163,63 @@ function callCrawl4ai(url: string, venv: ResolvedVenv, opts: ResolveVenvOptions)
  * Ruft den shot-scraper-DOM-Analyzer auf. Gibt bei Fehler leeres Objekt zurück
  * — der crawl4ai-Sensor kompensiert teilweise.
  */
-function callDomAnalyzer(url: string, venv: ResolvedVenv): DomData {
+interface DomCallResult {
+  data: DomData
+  /** Null bei Success, Error-Message bei Failure. */
+  error: null | string
+}
+
+function callDomAnalyzer(
+  url: string,
+  venv: ResolvedVenv,
+  opts: ResolveVenvOptions = {},
+): DomCallResult {
   try {
-    const output = runShotScraperJs(url, DOM_ANALYSIS_JS, venv)
-    return JSON.parse(output) as DomData
-  } catch {
-    return {contentBlocks: [], elements: {}, metrics: {}, sections: []}
+    const output = runShotScraperJs(url, DOM_ANALYSIS_JS, venv, opts)
+    return {data: JSON.parse(output) as DomData, error: null}
+  } catch (error) {
+    return {
+      data: {contentBlocks: [], elements: {}, metrics: {}, sections: []},
+      error: (error as Error).message,
+    }
   }
 }
 
 /**
+ * Ergebnis von extractStructure — `domError` ist gesetzt wenn der DOM-Analyzer
+ * fehlgeschlagen ist. Caller (qa.ts) nutzt das, um Sensor 3 als null zu
+ * melden anstatt einen False-Positive-Score aus leeren Daten zu berechnen.
+ */
+export interface StructureExtractionResult {
+  domError: null | string
+  structure: PageStructure
+}
+
+/**
  * Komplette Seitenstruktur extrahieren. Merged DOM-Daten (primary) + crawl4ai
- * (Content-Analyse).
+ * (Content-Analyse). Bei DOM-Analyzer-Fehler: domError gesetzt, Caller muss
+ * das als "Sensor 3 fehlgeschlagen" behandeln (nicht silent-Fallback).
  */
 export function extractStructure(
   url: string,
   venv: ResolvedVenv,
   opts: ResolveVenvOptions = {},
-): PageStructure {
+): StructureExtractionResult {
   const crawl4ai = callCrawl4ai(url, venv, opts)
-  const dom = callDomAnalyzer(url, venv)
+  const domResult = callDomAnalyzer(url, venv, opts)
+  const dom = domResult.data
 
   return {
-    content: crawl4ai.content ?? {},
-    contentBlocks: dom.contentBlocks,
-    elements: Object.keys(dom.elements).length > 0 ? dom.elements : (crawl4ai.elements ?? {}),
-    links: crawl4ai.links ?? {},
-    media: crawl4ai.media ?? {},
-    metrics: Object.keys(dom.metrics).length > 0 ? dom.metrics : (crawl4ai.metrics ?? {}),
-    sections: dom.sections,
+    domError: domResult.error,
+    structure: {
+      content: crawl4ai.content ?? {},
+      contentBlocks: dom.contentBlocks,
+      elements: Object.keys(dom.elements).length > 0 ? dom.elements : (crawl4ai.elements ?? {}),
+      links: crawl4ai.links ?? {},
+      media: crawl4ai.media ?? {},
+      metrics: Object.keys(dom.metrics).length > 0 ? dom.metrics : (crawl4ai.metrics ?? {}),
+      sections: dom.sections,
+    },
   }
 }
 

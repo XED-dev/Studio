@@ -1,8 +1,10 @@
 import {Command, Flags} from '@oclif/core'
+import {existsSync} from 'node:fs'
 
 import {discoverSites} from '../lib/config.js'
 import {httpGet, httpStatusCode} from '../lib/http.js'
 import {color, icon} from '../lib/output.js'
+import {resolvePlaywrightBrowsersPath, resolvePythonScript, resolveVenv} from '../lib/resolve-venv.js'
 import {isServiceActive, restartService} from '../lib/systemd.js'
 
 // ── Health-Check Logik ─────────────────────────────────────────────────────
@@ -100,6 +102,59 @@ function checkPayloadService(
   }
 }
 
+/**
+ * QA-Dependencies-Preflight (M5.4.1).
+ *
+ * Validiert die externen Abhängigkeiten von `qa compare`/`qa batch`:
+ *   - Python-venv mit shot-scraper-Shim
+ *   - Playwright-Chromium-Browsers-Verzeichnis
+ *   - `extract-structure.py` Helper für Sensor 3
+ *
+ * Bei Fehler: konkrete Fix-Action (install.sh). Kein Auto-Fix möglich —
+ * der Fix ist der Install-Rerun selbst, der diese Deps provisioniert.
+ */
+function checkQaDependencies(result: HealthResult, log: (msg: string) => void): void {
+  log(`  ${color.bold}QA Dependencies${color.nc}`)
+
+  // venv + shot-scraper-Shim
+  try {
+    const venv = resolveVenv()
+    if (existsSync(venv.shotScraper)) {
+      log(`  ${icon.ok} venv + shot-scraper — ${venv.root}`)
+    } else {
+      log(`  ${icon.err} shot-scraper fehlt im venv (${venv.shotScraper})`)
+      log(`         Fix: curl -fsSL https://studio.xed.dev/install.sh | bash`)
+      result.errors++
+    }
+  } catch {
+    log(`  ${icon.err} venv nicht gefunden (geprüft: ENV INFACTORY_VENV, <cwd>/venv, /opt/infactory/venv)`)
+    log(`         Fix: curl -fsSL https://studio.xed.dev/install.sh | bash`)
+    result.errors++
+  }
+
+  // Playwright-Browsers
+  const browsers = resolvePlaywrightBrowsersPath()
+  if (browsers) {
+    log(`  ${icon.ok} Playwright-Browsers — ${browsers}`)
+  } else {
+    log(`  ${icon.warn} Playwright-Browsers nicht gefunden (ENV PLAYWRIGHT_BROWSERS_PATH, <cwd>/browsers, /opt/infactory/browsers)`)
+    log(`         Default ~/.cache/ms-playwright/ wird ausprobiert — wenn qa dort crasht:`)
+    log(`         Fix: curl -fsSL https://studio.xed.dev/install.sh | bash`)
+    // Nur Warning, nicht Error — Default-Pfad kann existieren
+  }
+
+  // extract-structure.py (Sensor 3)
+  try {
+    const scriptPath = resolvePythonScript('extract-structure.py')
+    log(`  ${icon.ok} extract-structure.py — ${scriptPath}`)
+  } catch {
+    log(`  ${icon.err} extract-structure.py nicht gefunden (geprüft: <cwd>/src, /opt/infactory/infactory-cli/src)`)
+    log(`         Sensor 3 (Struktur-Vergleich) wird bei jeder qa-Session fehlschlagen.`)
+    log(`         Fix: curl -fsSL https://studio.xed.dev/install.sh | bash`)
+    result.errors++
+  }
+}
+
 // ── oclif Command ──────────────────────────────────────────────────────────
 
 export default class Health extends Command {
@@ -131,6 +186,10 @@ export default class Health extends Command {
     // ── NGINX ──────────────────────────────────────────────────────────
     this.log(`  ${color.bold}NGINX${color.nc}`)
     checkNginx(flags.fix, result, (msg) => this.log(msg))
+    this.log('')
+
+    // ── QA Dependencies ────────────────────────────────────────────────
+    checkQaDependencies(result, (msg) => this.log(msg))
     this.log('')
 
     // ── Alle Sites ─────────────────────────────────────────────────────
