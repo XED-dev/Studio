@@ -271,17 +271,42 @@ echo ""
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
 
-if ! command -v node &>/dev/null; then
-  err "Node.js nicht gefunden."
-  echo "     Install: https://nodejs.org/ (v18+)"
-  echo "     Oder:    curl -sL https://deb.nodesource.com/setup_22.x | sudo -E bash && sudo apt install -y nodejs"
-  exit 1
-fi
+# Node-Self-Heal: CLI-v2 hat engines.node >=24.0.0. install.sh installiert
+# Node 24 LTS automatisch, wenn fehlend oder zu alt (Debian/Ubuntu LTS only).
+REQUIRED_NODE_MAJOR=24
+NODESOURCE_URL="https://deb.nodesource.com/setup_${REQUIRED_NODE_MAJOR}.x"
 
-NODE_MAJOR=$(node -e "console.log(process.versions.node.split('.')[0])")
-if [ "$NODE_MAJOR" -lt 18 ]; then
-  err "Node.js $NODE_MAJOR gefunden — mindestens v18 erforderlich."
-  exit 1
+install_node_lts() {
+  if ! command -v apt-get &>/dev/null; then
+    err "Node ${REQUIRED_NODE_MAJOR}+ benötigt, aber apt-get nicht gefunden."
+    echo "     Unterstützte OS: Debian 12/13 · Ubuntu 22.04/24.04/26.04 LTS"
+    echo "     Andere Systeme: Node ${REQUIRED_NODE_MAJOR} manuell installieren"
+    echo "     (https://nodejs.org/)"
+    exit 1
+  fi
+  info "Node ${REQUIRED_NODE_MAJOR} LTS via NodeSource installieren..."
+  # </dev/null verhindert stdin-Inheritance aus curl|bash-Pipe
+  # (feedback_curl_bash_stdin)
+  if ! curl -fsSL "$NODESOURCE_URL" | sudo -E bash - </dev/null; then
+    err "NodeSource-Setup fehlgeschlagen ($NODESOURCE_URL)."
+    exit 1
+  fi
+  if ! sudo apt-get install -y nodejs </dev/null; then
+    err "apt-get install nodejs fehlgeschlagen."
+    exit 1
+  fi
+  ok "Node installiert: $(node --version), npm: $(npm --version)"
+}
+
+if ! command -v node &>/dev/null; then
+  warn "Node.js nicht gefunden — Self-Heal..."
+  install_node_lts
+else
+  NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
+  if [ "$NODE_MAJOR" -lt "$REQUIRED_NODE_MAJOR" ]; then
+    warn "Node $(node --version) gefunden — v${REQUIRED_NODE_MAJOR}+ benötigt. Self-Heal..."
+    install_node_lts
+  fi
 fi
 ok "Node.js $(node --version)"
 
