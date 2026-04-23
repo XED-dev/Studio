@@ -285,13 +285,14 @@ install_node_lts() {
     exit 1
   fi
   info "Node ${REQUIRED_NODE_MAJOR} LTS via NodeSource installieren..."
-  # </dev/null verhindert stdin-Inheritance aus curl|bash-Pipe
-  # (feedback_curl_bash_stdin)
-  if ! curl -fsSL "$NODESOURCE_URL" | sudo -E bash - </dev/null; then
+  # Bewusst KEIN </dev/null: bash - liest das NodeSource-Script via Pipe von curl.
+  # </dev/null würde die Pipe zerstören (stdin=/dev/null → sofort EOF → curl exit 23).
+  # feedback_curl_bash_stdin gilt für node-Subprozesse, nicht für bash - als Pipe-Reader.
+  if ! curl -fsSL "$NODESOURCE_URL" | sudo -E bash -; then
     err "NodeSource-Setup fehlgeschlagen ($NODESOURCE_URL)."
     exit 1
   fi
-  if ! sudo apt-get install -y nodejs </dev/null; then
+  if ! sudo apt-get install -y nodejs; then
     err "apt-get install nodejs fehlgeschlagen."
     exit 1
   fi
