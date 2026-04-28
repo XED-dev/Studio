@@ -471,7 +471,7 @@ install_native_build_toolchain() {
   ok "Native Build-Toolchain installiert"
 }
 
-install_nginx_wordops() {
+install_nginx_via_wordops() {
   if ! command -v curl &>/dev/null; then
     err "WordOps-Install benötigt curl, aber curl nicht gefunden."
     exit 1
@@ -514,6 +514,49 @@ install_nginx_wordops() {
   else
     info "Node nach WordOps-Install: ${POST_NODE_VERSION} (unverändert)"
   fi
+}
+
+install_nginx_via_apt() {
+  if ! command -v apt-get &>/dev/null; then
+    err "Plain-NGINX benötigt apt-get."
+    exit 1
+  fi
+  info "Plain-NGINX via apt-Default-Repo installieren (Resolute-Sandbox-Workaround)..."
+  warn "  WordOps-PPA hat keine Resolute-Builds (Stand 2026-04-28)"
+  warn "  noble-Override scheitert an ABI (libxml2, libgeoip1t64, ...)"
+  warn "  Memory: reference_wordops_install_quirks.md dokumentiert WordOps-Resolute-Lücke"
+  sudo apt-get update -qq 2>/dev/null || true
+  if ! sudo apt-get install -y nginx; then
+    err "apt-get install nginx fehlgeschlagen."
+    err "  Diagnose: apt-cache policy nginx"
+    exit 1
+  fi
+  if ! sudo systemctl enable --now nginx; then
+    err "systemctl enable --now nginx fehlgeschlagen."
+    err "  Diagnose: systemctl status nginx + journalctl -u nginx -n 20"
+    exit 1
+  fi
+  ok "Plain-NGINX installiert + aktiv: $(nginx -v 2>&1 | head -1)"
+}
+
+install_nginx() {
+  local CODENAME
+  CODENAME="$(lsb_release -cs 2>/dev/null || echo unknown)"
+  case "$CODENAME" in
+    noble|jammy|focal|bookworm|bullseye)
+      install_nginx_via_wordops
+      ;;
+    resolute)
+      info "Codename ${CODENAME}: WordOps-PPA hat keine Builds → Plain-NGINX-Fallback"
+      install_nginx_via_apt
+      ;;
+    *)
+      err "Unbekannter Codename '${CODENAME}'. NGINX-Self-Heal nicht definiert."
+      err "  WordOps-Pfad: noble jammy focal bookworm bullseye"
+      err "  Plain-NGINX-Pfad: resolute"
+      exit 1
+      ;;
+  esac
 }
 
 info "Python venv für QA-Tools..."
@@ -683,15 +726,16 @@ else
   ok "infactory → $BIN_LINK  [$CLI_LABEL]"
 fi
 
-# ─── NGINX Self-Heal via WordOps ─────────────────────────────────────────────
-# NGINX-Provision via WordOps für Production-Parität (DevOps-Strategie: WordOps
-# ist Basic-Stack seit 10+ Jahren, eventuell künftig inFactory@ /NGINX-Fork).
-# Detect-First als Schutzgürtel gegen WordOps' begrenzte Idempotenz (cp -rf
-# /opt/wo/lib/.../usr/*) — auf 5025 mit WordOps-Production schon-installiert
-# detected → no-op, kein Re-Provision-Risiko.
-if ! command -v wo &>/dev/null || ! systemctl is-active --quiet nginx; then
-  warn "WordOps/NGINX fehlt — Self-Heal..."
-  install_nginx_wordops
+# ─── NGINX Self-Heal via WordOps oder Plain-NGINX ────────────────────────────
+# Codename-Conditional Provision (Strategie A nach Cycle-10-ABI-Wurzel-Risiko):
+#   noble/jammy/focal/bookworm/bullseye → WordOps-Stack (Production-Parität, 5025-Style)
+#   resolute → Plain-NGINX (Sandbox-Workaround, WordOps-PPA hat keine Resolute-Builds,
+#              noble-Override scheitert an libxml2/libgeoip-ABI-Bruch)
+# Outer-Detect via 'systemctl is-active --quiet nginx' — universell idempotent,
+# auf 5025 mit WordOps schon-installiert detected → no-op.
+if ! systemctl is-active --quiet nginx; then
+  warn "NGINX fehlt — Self-Heal (Codename-conditional: WordOps oder Plain)..."
+  install_nginx
 fi
 
 # WordOps-Default-NGINX kennt /etc/nginx/proxy/ nicht — anlegen für nachfolgende Probe
