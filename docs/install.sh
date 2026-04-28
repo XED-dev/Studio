@@ -523,7 +523,9 @@ if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python3" ] && [ -f "$VENV_DIR/bin/p
   ok "Python-Pakete aktualisiert"
 else
   info "Erstelle venv in $VENV_DIR (Python ${REQUIRED_PYTHON_VERSION} via uv)..."
-  uv venv --python "${REQUIRED_PYTHON_VERSION}" "$VENV_DIR"
+  # --seed installiert pip + setuptools + wheel ins venv. uv ist Pip-Replacement,
+  # kein Pip-Provider — ohne --seed hat das venv KEIN bin/pip. Cycle-8-Wurzel-Fix.
+  uv venv --python "${REQUIRED_PYTHON_VERSION}" --seed "$VENV_DIR"
   "$VENV_DIR/bin/pip" install --upgrade pip --quiet
   "$VENV_DIR/bin/pip" install shot-scraper crawl4ai --quiet
   ok "shot-scraper + crawl4ai installiert (Python ${REQUIRED_PYTHON_VERSION} via uv)"
