@@ -419,6 +419,22 @@ install_python_venv() {
   ok "python3-venv installiert"
 }
 
+install_native_build_toolchain() {
+  if ! command -v apt-get &>/dev/null; then
+    err "Native Build-Toolchain benötigt (für pip C-Extensions wie lxml), aber apt-get nicht gefunden."
+    echo "     Unterstützte OS: Debian 12/13 · Ubuntu 22.04/24.04/26.04 LTS"
+    echo "     Andere Systeme: libxml2-dev libxslt1-dev build-essential python3-dev manuell installieren"
+    exit 1
+  fi
+  info "Native Build-Toolchain via apt installieren (libxml2-dev + libxslt1-dev + build-essential + python3-dev)..."
+  sudo apt-get update -qq 2>/dev/null || true
+  if ! sudo apt-get install -y libxml2-dev libxslt1-dev build-essential python3-dev; then
+    err "apt-get install Build-Toolchain fehlgeschlagen."
+    exit 1
+  fi
+  ok "Native Build-Toolchain installiert"
+}
+
 info "Python venv für QA-Tools..."
 
 if ! command -v python3 &>/dev/null; then
@@ -440,6 +456,15 @@ else
       BROKEN_BACKUP="${VENV_DIR}.broken.$(date +%s)"
       warn "venv inkomplett (pyvenv.cfg fehlt) — verschiebe nach $BROKEN_BACKUP/"
       mv "$VENV_DIR" "$BROKEN_BACKUP"
+    fi
+
+    # Self-Heal: lxml (crawl4ai-Dep) braucht C-Extension-Headers + Compiler-Toolchain
+    # für Build-from-Source. dpkg-Probe deckt beide pip-install-Pfade (Update + Erstelle) ab.
+    # Helper-Name bewusst neutral — beim nächsten C-Extension-Bug Paket-Liste erweitern,
+    # nicht neuen Helper bauen (Empfehlung AI030 Senior).
+    if ! dpkg -s libxml2-dev libxslt1-dev build-essential python3-dev &>/dev/null; then
+      warn "Native Build-Toolchain fehlt — Self-Heal..."
+      install_native_build_toolchain
     fi
 
     # Strengere Probe: Update-Pfad nur wenn ALLE Marker komplett sind
