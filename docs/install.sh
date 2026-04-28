@@ -276,6 +276,11 @@ echo ""
 REQUIRED_NODE_MAJOR=24
 NODESOURCE_URL="https://deb.nodesource.com/setup_${REQUIRED_NODE_MAJOR}.x"
 
+# Python-Self-Heal via uv (Cycle 5): inFactory-Standard-Python wird via uv installiert,
+# unabhängig von OS-Default. Tool-Layer-Pattern für Multi-OS-Sandbox-Matrix
+# (Ubuntu 22/24/26 + Debian 12/13). Single change-point bei künftigem LTS-Wechsel.
+REQUIRED_PYTHON_VERSION=3.13
+
 install_node_lts() {
   if ! command -v apt-get &>/dev/null; then
     err "Node ${REQUIRED_NODE_MAJOR}+ benötigt, aber apt-get nicht gefunden."
@@ -404,19 +409,32 @@ fi
 
 # ─── Python venv (QA-Tools für Track-B) ──────────────────────────────────────
 
-install_python_venv() {
-  if ! command -v apt-get &>/dev/null; then
-    err "python3-venv benötigt, aber apt-get nicht gefunden."
-    echo "     Unterstützte OS: Debian 12/13 · Ubuntu 22.04/24.04/26.04 LTS"
+# uv ersetzt python3-venv-System-Pfad — install_python_venv() + ensurepip-Probe entfernt (Cycle 3 obsolet).
+# Tool-Layer-Pattern (Cycle 5): Python-Version wird zur install.sh-Variable, nicht OS-Default-Lottery.
+install_uv() {
+  if ! command -v curl &>/dev/null; then
+    err "uv-Install benötigt curl, aber curl nicht gefunden."
     exit 1
   fi
-  info "python3-venv via apt installieren..."
-  sudo apt-get update -qq 2>/dev/null || true
-  if ! sudo apt-get install -y python3-venv; then
-    err "apt-get install python3-venv fehlgeschlagen."
+  info "uv (Python-Version-Manager via Astral) installieren..."
+  # KEIN </dev/null hier: sh liest Script via Pipe von curl
+  # (feedback_curl_bash_stdin Anti-Pattern für Pipe-Interpreter, exakt wie NodeSource-Setup).
+  if ! UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 \
+       curl -LsSf https://astral.sh/uv/install.sh | sh; then
+    err "uv-Installer fehlgeschlagen."
     exit 1
   fi
-  ok "python3-venv installiert"
+  # Fallback wenn UV_INSTALL_DIR ignoriert wird: Symlink von Default-Pfad nach /usr/local/bin
+  if ! command -v uv &>/dev/null; then
+    for cand in /root/.local/bin/uv "$HOME/.local/bin/uv"; do
+      [ -x "$cand" ] && ln -sf "$cand" /usr/local/bin/uv && break
+    done
+  fi
+  if ! command -v uv &>/dev/null; then
+    err "uv installiert, aber nicht im PATH auffindbar."
+    exit 1
+  fi
+  ok "uv installiert: $(uv --version 2>/dev/null | head -1)"
 }
 
 install_native_build_toolchain() {
@@ -437,77 +455,82 @@ install_native_build_toolchain() {
 
 info "Python venv für QA-Tools..."
 
-if ! command -v python3 &>/dev/null; then
-  err "Python3 nicht gefunden. Install: sudo apt install -y python3 python3-venv python3-pip"
-  echo "     QA-Tools (shot-scraper, crawl4ai) werden NICHT installiert."
-  echo "     Der Server funktioniert ohne QA — QA-Endpunkte geben Fehler zurück."
-else
-  PYTHON_MAJOR=$(python3 -c "import sys; print(sys.version_info.major)")
-  PYTHON_MINOR=$(python3 -c "import sys; print(sys.version_info.minor)")
-  if [ "$PYTHON_MAJOR" -lt 3 ] || [ "$PYTHON_MINOR" -lt 9 ]; then
-    err "Python ${PYTHON_MAJOR}.${PYTHON_MINOR} gefunden — mindestens 3.9 erforderlich für crawl4ai."
-  else
-    ok "Python $(python3 --version | cut -d' ' -f2)"
+# Self-Heal: uv (Python-Version-Manager via Astral) — Tool-Layer-Pattern statt OS-Default-Lottery
+if ! command -v uv &>/dev/null; then
+  warn "uv fehlt — Self-Heal..."
+  install_uv
+fi
+ok "uv $(uv --version | cut -d' ' -f2)"
 
-    # Detect-and-Recreate: inkomplettes venv (z.B. von vorigem Run mit ensurepip-Fehler)
-    # erkennen und nach venv.broken.<timestamp>/ verschieben — keine manuelle Intervention.
-    # Self-Heal-Recovery-Pfade müssen Pre-Run-Zustände einkalkulieren, nicht nur Vanilla.
-    if [ -d "$VENV_DIR" ] && [ ! -f "$VENV_DIR/pyvenv.cfg" ]; then
-      BROKEN_BACKUP="${VENV_DIR}.broken.$(date +%s)"
-      warn "venv inkomplett (pyvenv.cfg fehlt) — verschiebe nach $BROKEN_BACKUP/"
-      mv "$VENV_DIR" "$BROKEN_BACKUP"
-    fi
-
-    # Self-Heal: lxml (crawl4ai-Dep) braucht C-Extension-Headers + Compiler-Toolchain
-    # für Build-from-Source. dpkg-Probe deckt beide pip-install-Pfade (Update + Erstelle) ab.
-    # Helper-Name bewusst neutral — beim nächsten C-Extension-Bug Paket-Liste erweitern,
-    # nicht neuen Helper bauen (Empfehlung AI030 Senior).
-    if ! dpkg -s libxml2-dev libxslt1-dev build-essential python3-dev &>/dev/null; then
-      warn "Native Build-Toolchain fehlt — Self-Heal..."
-      install_native_build_toolchain
-    fi
-
-    # Strengere Probe: Update-Pfad nur wenn ALLE Marker komplett sind
-    # (bin/python3 wird beim venv-Bootstrap zuerst angelegt und sagt nichts über Vollständigkeit aus)
-    if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python3" ] && [ -f "$VENV_DIR/bin/pip" ] && [ -f "$VENV_DIR/pyvenv.cfg" ]; then
-      info "Bestehendes venv gefunden — aktualisiere..."
-      "$VENV_DIR/bin/pip" install --upgrade --quiet shot-scraper crawl4ai
-      ok "Python-Pakete aktualisiert"
-    else
-      info "Erstelle venv in $VENV_DIR..."
-      # Self-Heal: ensurepip-Modul verfügbar? (Ubuntu Server liefert python3 ohne ensurepip)
-      if ! python3 -c "import ensurepip" 2>/dev/null; then
-        warn "python3-venv fehlt — Self-Heal..."
-        install_python_venv
-      fi
-      python3 -m venv "$VENV_DIR"
-      "$VENV_DIR/bin/pip" install --upgrade pip --quiet
-      "$VENV_DIR/bin/pip" install shot-scraper crawl4ai --quiet
-      ok "shot-scraper + crawl4ai installiert"
-    fi
-
-    export PLAYWRIGHT_BROWSERS_PATH="$INSTALL_DIR/browsers"
-    mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
-
-    info "Playwright Browser installieren..."
-    "$VENV_DIR/bin/python3" -m playwright install chromium 2>/dev/null && ok "Playwright Chromium installiert" || {
-      echo "     ⚠  Playwright-Installation fehlgeschlagen."
-      echo "     Manuell: PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH $VENV_DIR/bin/python3 -m playwright install chromium"
-    }
-
-    chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH"
-
-    info "Playwright System-Dependencies..."
-    "$VENV_DIR/bin/python3" -m playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
-      if command -v npx &>/dev/null; then
-        npx playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
-          echo "     ⚠  Einige System-Dependencies fehlen evtl."
-          echo "     Manuell: sudo npx playwright install-deps chromium"
-        }
-      fi
-    }
+# Idempotent: REQUIRED_PYTHON_VERSION via uv bereitstellen (lädt nach wenn fehlend, no-op wenn da)
+info "Python ${REQUIRED_PYTHON_VERSION} via uv bereitstellen..."
+if ! uv python list --only-installed 2>/dev/null | grep -qE "^cpython-${REQUIRED_PYTHON_VERSION}\.|^${REQUIRED_PYTHON_VERSION}\."; then
+  if ! uv python install "${REQUIRED_PYTHON_VERSION}"; then
+    err "uv python install ${REQUIRED_PYTHON_VERSION} fehlgeschlagen."
+    exit 1
   fi
 fi
+ok "Python ${REQUIRED_PYTHON_VERSION} verfügbar via uv"
+
+# Recovery: existing venv mit Python-Version-Drift (z.B. von Pre-Cycle-5-Run mit System-Python 3.14).
+# Multi-Format-Grep: Standard-CPython-venv schreibt 'version = X.Y.Z', uv schreibt 'version_info = X.Y.Z'.
+# Format-Drift in Pre-Verifikation entdeckt — würde sonst silent durch sein (AI030 Mini-Hinweis 2).
+if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/pyvenv.cfg" ]; then
+  CUR_VER=$(grep -E "^(version|version_info) = " "$VENV_DIR/pyvenv.cfg" | head -1 | cut -d= -f2 | tr -d ' ')
+  if [ -n "$CUR_VER" ] && ! echo "$CUR_VER" | grep -qE "^${REQUIRED_PYTHON_VERSION}\."; then
+    BROKEN_BACKUP="${VENV_DIR}.broken.$(date +%s)"
+    warn "venv läuft auf Python ${CUR_VER} — gefordert ${REQUIRED_PYTHON_VERSION}.x. Verschiebe nach $BROKEN_BACKUP/"
+    mv "$VENV_DIR" "$BROKEN_BACKUP"
+  fi
+fi
+
+# Detect-and-Recreate: inkomplettes venv (Cycle 3) — pyvenv.cfg fehlt aber Verzeichnis da
+if [ -d "$VENV_DIR" ] && [ ! -f "$VENV_DIR/pyvenv.cfg" ]; then
+  BROKEN_BACKUP="${VENV_DIR}.broken.$(date +%s)"
+  warn "venv inkomplett (pyvenv.cfg fehlt) — verschiebe nach $BROKEN_BACKUP/"
+  mv "$VENV_DIR" "$BROKEN_BACKUP"
+fi
+
+# Self-Heal: native Build-Toolchain (defensive Backup falls transitive C-Extension auftaucht).
+# Mit Python 3.13 + lxml-5.x-Wheels typisch nicht nötig — aber idempotent: dpkg-s ist read-only.
+if ! dpkg -s libxml2-dev libxslt1-dev build-essential python3-dev &>/dev/null; then
+  warn "Native Build-Toolchain fehlt — Self-Heal..."
+  install_native_build_toolchain
+fi
+
+# Update-Pfad-Probe (Cycle 3 strengere Marker) oder Erstelle-Pfad mit uv venv
+if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python3" ] && [ -f "$VENV_DIR/bin/pip" ] && [ -f "$VENV_DIR/pyvenv.cfg" ]; then
+  info "Bestehendes venv gefunden (Python ${REQUIRED_PYTHON_VERSION}) — aktualisiere..."
+  "$VENV_DIR/bin/pip" install --upgrade --quiet shot-scraper crawl4ai
+  ok "Python-Pakete aktualisiert"
+else
+  info "Erstelle venv in $VENV_DIR (Python ${REQUIRED_PYTHON_VERSION} via uv)..."
+  uv venv --python "${REQUIRED_PYTHON_VERSION}" "$VENV_DIR"
+  "$VENV_DIR/bin/pip" install --upgrade pip --quiet
+  "$VENV_DIR/bin/pip" install shot-scraper crawl4ai --quiet
+  ok "shot-scraper + crawl4ai installiert (Python ${REQUIRED_PYTHON_VERSION} via uv)"
+fi
+
+export PLAYWRIGHT_BROWSERS_PATH="$INSTALL_DIR/browsers"
+mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
+
+info "Playwright Browser installieren..."
+"$VENV_DIR/bin/python3" -m playwright install chromium 2>/dev/null && ok "Playwright Chromium installiert" || {
+  echo "     ⚠  Playwright-Installation fehlgeschlagen."
+  echo "     Manuell: PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH $VENV_DIR/bin/python3 -m playwright install chromium"
+}
+
+chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH"
+
+info "Playwright System-Dependencies..."
+"$VENV_DIR/bin/python3" -m playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
+  if command -v npx &>/dev/null; then
+    npx playwright install-deps chromium 2>/dev/null && ok "System-Dependencies installiert" || {
+      echo "     ⚠  Einige System-Dependencies fehlen evtl."
+      echo "     Manuell: sudo npx playwright install-deps chromium"
+    }
+  fi
+}
 
 # ─── Referenz-Themes (MIT, Track-B) ──────────────────────────────────────────
 
