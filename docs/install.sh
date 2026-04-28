@@ -424,14 +424,25 @@ install_uv() {
     err "uv-Installer fehlgeschlagen."
     exit 1
   fi
-  # Fallback wenn UV_INSTALL_DIR ignoriert wird: Symlink von Default-Pfad nach /usr/local/bin
+  # Fallback wenn UV_INSTALL_DIR ignoriert wurde (Astral 0.11.8 respektiert ihn nicht zuverlässig):
+  # Symlink von Default-Pfad nach /usr/local/bin, plus bash-hash-cache invalidieren.
   if ! command -v uv &>/dev/null; then
     for cand in /root/.local/bin/uv "$HOME/.local/bin/uv"; do
-      [ -x "$cand" ] && ln -sf "$cand" /usr/local/bin/uv && break
+      if [ -x "$cand" ]; then
+        info "uv installiert nach $cand — symlinke nach /usr/local/bin/uv..."
+        ln -sf "$cand" /usr/local/bin/uv
+        break
+      fi
     done
+    # bash-hash-Cache invalidieren (defensive — falls negative Lookups in irgendeiner Form gecached)
+    hash -r 2>/dev/null || true
   fi
+  # Erweiterte Diagnose im Fail-Fall (Cycle 6 — Defense-in-Depth: zeigt echte Wurzel statt Hypothese)
   if ! command -v uv &>/dev/null; then
     err "uv installiert, aber nicht im PATH auffindbar."
+    err "  Default-Pfad: $(ls -la /root/.local/bin/uv 2>/dev/null || echo 'nicht gefunden')"
+    err "  Symlink:      $(ls -la /usr/local/bin/uv 2>/dev/null || echo 'nicht gefunden')"
+    err "  PATH:         $PATH"
     exit 1
   fi
   ok "uv installiert: $(uv --version 2>/dev/null | head -1)"
