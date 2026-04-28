@@ -559,6 +559,40 @@ install_nginx() {
   esac
 }
 
+install_playwright_resolute_runtime_libs() {
+  # Resolute-spezifische Runtime-Libs für Chromium (ubuntu24.04-Binaries linken
+  # gegen t64-libs auf Ubuntu 26.04, Y2038-Transition-Libs).
+  # Quelle: gh microsoft/playwright#40117 Comment @volarname (Playwright 1.59.1).
+  local PKGS="libnss3 libnspr4 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 libcups2t64 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libdrm2 libpango-1.0-0 libcairo2 libasound2t64 libwayland-client0"
+  if ! dpkg -s $PKGS &>/dev/null; then
+    info "Playwright-Runtime-Libs für Resolute apt-installieren (gh microsoft/playwright#40117)..."
+    sudo apt-get update -qq 2>/dev/null || true
+    if ! sudo apt-get install -y $PKGS; then
+      err "apt-get install Playwright-Runtime-Libs fehlgeschlagen."
+      return 1
+    fi
+    ok "Playwright-Runtime-Libs installiert (Resolute t64-Variants)"
+  fi
+}
+
+install_playwright_chromium() {
+  local OVERRIDE=""
+  case "$(lsb_release -cs 2>/dev/null)" in
+    resolute)
+      OVERRIDE="ubuntu24.04-x64"
+      warn "Codename resolute: Playwright nicht offiziell supported — technical debt"
+      info "  Workaround: PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=${OVERRIDE}"
+      info "  Quelle:     gh microsoft/playwright#40117 (v1.60 wartet auf GHA-Resolute-Image)"
+      install_playwright_resolute_runtime_libs || return 1
+      ;;
+  esac
+  if [ -n "$OVERRIDE" ]; then
+    PLAYWRIGHT_HOST_PLATFORM_OVERRIDE="$OVERRIDE" "$VENV_DIR/bin/python3" -m playwright install chromium 2>/dev/null
+  else
+    "$VENV_DIR/bin/python3" -m playwright install chromium 2>/dev/null
+  fi
+}
+
 info "Python venv für QA-Tools..."
 
 # Self-Heal: uv (Python-Version-Manager via Astral) — Tool-Layer-Pattern statt OS-Default-Lottery
@@ -625,9 +659,9 @@ export PLAYWRIGHT_BROWSERS_PATH="$INSTALL_DIR/browsers"
 mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
 
 info "Playwright Browser installieren..."
-"$VENV_DIR/bin/python3" -m playwright install chromium 2>/dev/null && ok "Playwright Chromium installiert" || {
+install_playwright_chromium && ok "Playwright Chromium installiert" || {
   echo "     ⚠  Playwright-Installation fehlgeschlagen."
-  echo "     Manuell: PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH $VENV_DIR/bin/python3 -m playwright install chromium"
+  echo "     Manuell: PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 PLAYWRIGHT_BROWSERS_PATH=$PLAYWRIGHT_BROWSERS_PATH $VENV_DIR/bin/python3 -m playwright install chromium"
 }
 
 chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH"
