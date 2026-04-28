@@ -29,6 +29,15 @@
 
 set -euo pipefail
 
+# Defense gegen minimal-PATH (curl|bash als root mit reduziertem PATH).
+# Bootstrap-Layer: vor allen Self-Heal-Helpern muss /usr/local/bin im PATH sein,
+# sonst greift kein command -v Lookup auf lokal-installierte Software (uv-Symlink etc.).
+# Wurzel im Cycle-6-Diagnose-Output entlarvt: PATH war /sbin:/bin:/usr/sbin:/usr/bin.
+case ":$PATH:" in
+  *:/usr/local/bin:*) ;;
+  *) export PATH="/usr/local/bin:$PATH" ;;
+esac
+
 REPO="https://github.com/XED-dev/Studio.git"
 INSTALL_DIR="/opt/infactory"
 BIN_LINK="/usr/local/bin/infactory"
@@ -434,8 +443,6 @@ install_uv() {
         break
       fi
     done
-    # bash-hash-Cache invalidieren (defensive — falls negative Lookups in irgendeiner Form gecached)
-    hash -r 2>/dev/null || true
   fi
   # Erweiterte Diagnose im Fail-Fall (Cycle 6 — Defense-in-Depth: zeigt echte Wurzel statt Hypothese)
   if ! command -v uv &>/dev/null; then
