@@ -433,9 +433,20 @@ else
   else
     ok "Python $(python3 --version | cut -d' ' -f2)"
 
-    if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python3" ]; then
+    # Detect-and-Recreate: inkomplettes venv (z.B. von vorigem Run mit ensurepip-Fehler)
+    # erkennen und nach venv.broken.<timestamp>/ verschieben — keine manuelle Intervention.
+    # Self-Heal-Recovery-Pfade müssen Pre-Run-Zustände einkalkulieren, nicht nur Vanilla.
+    if [ -d "$VENV_DIR" ] && [ ! -f "$VENV_DIR/pyvenv.cfg" ]; then
+      BROKEN_BACKUP="${VENV_DIR}.broken.$(date +%s)"
+      warn "venv inkomplett (pyvenv.cfg fehlt) — verschiebe nach $BROKEN_BACKUP/"
+      mv "$VENV_DIR" "$BROKEN_BACKUP"
+    fi
+
+    # Strengere Probe: Update-Pfad nur wenn ALLE Marker komplett sind
+    # (bin/python3 wird beim venv-Bootstrap zuerst angelegt und sagt nichts über Vollständigkeit aus)
+    if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python3" ] && [ -f "$VENV_DIR/bin/pip" ] && [ -f "$VENV_DIR/pyvenv.cfg" ]; then
       info "Bestehendes venv gefunden — aktualisiere..."
-      "$VENV_DIR/bin/pip" install --upgrade --quiet shot-scraper crawl4ai 2>/dev/null
+      "$VENV_DIR/bin/pip" install --upgrade --quiet shot-scraper crawl4ai
       ok "Python-Pakete aktualisiert"
     else
       info "Erstelle venv in $VENV_DIR..."
@@ -445,8 +456,8 @@ else
         install_python_venv
       fi
       python3 -m venv "$VENV_DIR"
-      "$VENV_DIR/bin/pip" install --upgrade pip --quiet 2>/dev/null
-      "$VENV_DIR/bin/pip" install shot-scraper crawl4ai --quiet 2>/dev/null
+      "$VENV_DIR/bin/pip" install --upgrade pip --quiet
+      "$VENV_DIR/bin/pip" install shot-scraper crawl4ai --quiet
       ok "shot-scraper + crawl4ai installiert"
     fi
 
