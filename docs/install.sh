@@ -311,9 +311,25 @@ else
 fi
 ok "Node.js $(node --version)"
 
+install_git_apt() {
+  if ! command -v apt-get &>/dev/null; then
+    err "Git benötigt, aber apt-get nicht gefunden."
+    echo "     Unterstützte OS: Debian 12/13 · Ubuntu 22.04/24.04/26.04 LTS"
+    echo "     Andere Systeme: Git manuell installieren (https://git-scm.com/)"
+    exit 1
+  fi
+  info "Git via apt installieren..."
+  sudo apt-get update -qq 2>/dev/null || true
+  if ! sudo apt-get install -y git; then
+    err "apt-get install git fehlgeschlagen."
+    exit 1
+  fi
+  ok "Git installiert: $(git --version | cut -d' ' -f3)"
+}
+
 if ! command -v git &>/dev/null; then
-  err "Git nicht gefunden. Install: sudo apt install -y git"
-  exit 1
+  warn "Git nicht gefunden — Self-Heal..."
+  install_git_apt
 fi
 ok "Git $(git --version | cut -d' ' -f3)"
 
