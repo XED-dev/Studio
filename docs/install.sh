@@ -404,6 +404,21 @@ fi
 
 # ─── Python venv (QA-Tools für Track-B) ──────────────────────────────────────
 
+install_python_venv() {
+  if ! command -v apt-get &>/dev/null; then
+    err "python3-venv benötigt, aber apt-get nicht gefunden."
+    echo "     Unterstützte OS: Debian 12/13 · Ubuntu 22.04/24.04/26.04 LTS"
+    exit 1
+  fi
+  info "python3-venv via apt installieren..."
+  sudo apt-get update -qq 2>/dev/null || true
+  if ! sudo apt-get install -y python3-venv; then
+    err "apt-get install python3-venv fehlgeschlagen."
+    exit 1
+  fi
+  ok "python3-venv installiert"
+}
+
 info "Python venv für QA-Tools..."
 
 if ! command -v python3 &>/dev/null; then
@@ -424,6 +439,11 @@ else
       ok "Python-Pakete aktualisiert"
     else
       info "Erstelle venv in $VENV_DIR..."
+      # Self-Heal: ensurepip-Modul verfügbar? (Ubuntu Server liefert python3 ohne ensurepip)
+      if ! python3 -c "import ensurepip" 2>/dev/null; then
+        warn "python3-venv fehlt — Self-Heal..."
+        install_python_venv
+      fi
       python3 -m venv "$VENV_DIR"
       "$VENV_DIR/bin/pip" install --upgrade pip --quiet 2>/dev/null
       "$VENV_DIR/bin/pip" install shot-scraper crawl4ai --quiet 2>/dev/null
