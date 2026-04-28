@@ -471,6 +471,51 @@ install_native_build_toolchain() {
   ok "Native Build-Toolchain installiert"
 }
 
+install_nginx_wordops() {
+  if ! command -v curl &>/dev/null; then
+    err "WordOps-Install benötigt curl, aber curl nicht gefunden."
+    exit 1
+  fi
+  info "WordOps + NGINX-Stack via --force install (Resolute → Codename-Whitelist override)..."
+  # Phase-2-Empirik (AI032-Senior-Mini-Hinweis): Node-Version VOR WordOps loggen,
+  # um nach dem Install eine etwaige Verschränkung mit Cycles 1-2 (Node 24 LTS)
+  # empirisch sichtbar zu machen.
+  PRE_NODE_VERSION="$(node --version 2>/dev/null || echo 'nicht verfügbar')"
+  info "Node-Version vor WordOps-Install: ${PRE_NODE_VERSION}"
+  # WordOps-Empfehlung: wops.cc/install + bash --force (always-current).
+  # </dev/null isoliert stdin (feedback_curl_bash_stdin: bash <file> ist konkreter
+  # Script-Pfad-Aufruf, nicht Pipe-Interpreter — </dev/null sicher angebracht).
+  if ! curl -fsSL https://wops.cc/install -o /tmp/wo-install.sh; then
+    err "WordOps install-Script-Download fehlgeschlagen."
+    exit 1
+  fi
+  if ! sudo bash /tmp/wo-install.sh --force </dev/null; then
+    err "WordOps install --force fehlgeschlagen."
+    err "  Codename:  $(lsb_release -cs 2>/dev/null || echo 'unbekannt')"
+    err "  Logs:      /var/log/wo/install.log"
+    err "  Diagnose:  grep -E 'noble|jammy|focal' /var/log/wo/install.log | head -5"
+    exit 1
+  fi
+  if ! command -v wo &>/dev/null; then
+    err "WordOps installiert, aber 'wo' nicht im PATH."
+    err "  Default-Pfad: $(ls -la /usr/local/bin/wo 2>/dev/null || echo 'nicht gefunden')"
+    exit 1
+  fi
+  if ! systemctl is-active --quiet nginx; then
+    err "WordOps fertig, aber NGINX nicht active. Probe: systemctl status nginx."
+    exit 1
+  fi
+  ok "WordOps + NGINX installiert: $(wo --version 2>&1 | head -1) / $(nginx -v 2>&1 | head -1)"
+  # Phase-2-Verschränkungs-Probe
+  POST_NODE_VERSION="$(node --version 2>/dev/null || echo 'nicht verfügbar')"
+  if [ "$POST_NODE_VERSION" != "$PRE_NODE_VERSION" ]; then
+    warn "Node-Drift durch WordOps detected: ${PRE_NODE_VERSION} → ${POST_NODE_VERSION}"
+    warn "  Phase-2 MULTI-NODE-STRATEGY.md Verschränkung empirisch belegt"
+  else
+    info "Node nach WordOps-Install: ${POST_NODE_VERSION} (unverändert)"
+  fi
+}
+
 info "Python venv für QA-Tools..."
 
 # Self-Heal: uv (Python-Version-Manager via Astral) — Tool-Layer-Pattern statt OS-Default-Lottery
@@ -637,6 +682,20 @@ else
   sudo ln -s "$CLI_TARGET" "$BIN_LINK"
   ok "infactory → $BIN_LINK  [$CLI_LABEL]"
 fi
+
+# ─── NGINX Self-Heal via WordOps ─────────────────────────────────────────────
+# NGINX-Provision via WordOps für Production-Parität (DevOps-Strategie: WordOps
+# ist Basic-Stack seit 10+ Jahren, eventuell künftig inFactory@ /NGINX-Fork).
+# Detect-First als Schutzgürtel gegen WordOps' begrenzte Idempotenz (cp -rf
+# /opt/wo/lib/.../usr/*) — auf 5025 mit WordOps-Production schon-installiert
+# detected → no-op, kein Re-Provision-Risiko.
+if ! command -v wo &>/dev/null || ! systemctl is-active --quiet nginx; then
+  warn "WordOps/NGINX fehlt — Self-Heal..."
+  install_nginx_wordops
+fi
+
+# WordOps-Default-NGINX kennt /etc/nginx/proxy/ nicht — anlegen für nachfolgende Probe
+sudo mkdir -p /etc/nginx/proxy
 
 # ─── NGINX Proxy-Configs ─────────────────────────────────────────────────────
 
